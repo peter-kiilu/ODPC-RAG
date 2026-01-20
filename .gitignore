@@ -25,6 +25,11 @@ venv/
 .venv/
 ENV/
 env/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
 .env
 
 # IDE / Editor
@@ -61,6 +66,11 @@ ehthumbs.db
 Thumbs.db
 desktop.ini
 
+# ChromaDB vector store
+chroma_db/
+
+# MyPy
+.mypy_cache/
 # Output directories (crawler generated content)
 output/
 output_articles/
