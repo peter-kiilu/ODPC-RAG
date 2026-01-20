@@ -30,6 +30,7 @@ env/
 .env
 .env.local
 .env.*.local
+.env
 
 # IDE / Editor
 .idea/
@@ -70,3 +71,45 @@ chroma_db/
 
 # MyPy
 .mypy_cache/
+# Output directories (crawler generated content)
+output/
+output_articles/
+output_odpc_js/
+output_single/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# MyPy
+.mypy_cache/
+
+# Environment
+.env
+.env.local
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+
+# ChromaDB vector store
+chroma_db/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
