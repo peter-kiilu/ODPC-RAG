@@ -1,25 +1,34 @@
-"""Embedding generation using OpenAI."""
+"""Embedding generation using HuggingFace BAAI/bge-small-en-v1.5."""
 
 import logging
 from typing import List
-from openai import OpenAI
-
-from .config import config
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 logger = logging.getLogger(__name__)
 
 
 class EmbeddingGenerator:
-    """Generate embeddings using OpenAI API."""
+    """Generate embeddings using HuggingFace BAAI/bge-small-en-v1.5 model."""
     
-    def __init__(self, model: str = None):
+    def __init__(self, model_name: str = "BAAI/bge-small-en-v1.5", device: str = "cpu", batch_size: int = 8):
         """Initialize the embedding generator.
         
         Args:
-            model: OpenAI embedding model to use.
+            model_name: HuggingFace model to use for embeddings.
+            device: Device to run the model on ('cpu' or 'cuda').
+            batch_size: Batch size for embedding generation.
         """
-        self.model = model or config.EMBEDDING_MODEL
-        self.client = OpenAI(api_key=config.OPENAI_API_KEY)
+        self.model_name = model_name
+        self.device = device
+        self.batch_size = batch_size
+        
+        # Initialize the HuggingFace embedding model
+        self.embed_model = HuggingFaceEmbedding(
+            model_name=self.model_name,
+            device=self.device,
+            embed_batch_size=self.batch_size,
+        )
+        logger.info(f"Initialized HuggingFace embedding model: {self.model_name}")
         
     def embed_texts(self, texts: List[str]) -> List[List[float]]:
         """Generate embeddings for a list of texts.
@@ -33,30 +42,23 @@ class EmbeddingGenerator:
         if not texts:
             return []
         
-        # OpenAI API has a limit on batch size
-        batch_size = 100
         all_embeddings = []
         
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i:i + batch_size]
-            
-            try:
-                response = self.client.embeddings.create(
-                    model=self.model,
-                    input=batch
-                )
+        try:
+            for i in range(0, len(texts), self.batch_size):
+                batch = texts[i:i + self.batch_size]
                 
-                # Sort by index to maintain order
-                embeddings = [item.embedding for item in sorted(
-                    response.data, key=lambda x: x.index
-                )]
-                all_embeddings.extend(embeddings)
+                # Get embeddings for each text in the batch
+                batch_embeddings = [
+                    self.embed_model.get_text_embedding(text) for text in batch
+                ]
+                all_embeddings.extend(batch_embeddings)
                 
-                logger.debug(f"Generated embeddings for batch {i // batch_size + 1}")
+                logger.debug(f"Generated embeddings for batch {i // self.batch_size + 1}")
                 
-            except Exception as e:
-                logger.error(f"Error generating embeddings: {e}")
-                raise
+        except Exception as e:
+            logger.error(f"Error generating embeddings: {e}")
+            raise
         
         logger.info(f"Generated {len(all_embeddings)} embeddings")
         return all_embeddings
@@ -70,5 +72,13 @@ class EmbeddingGenerator:
         Returns:
             Embedding vector.
         """
-        embeddings = self.embed_texts([query])
-        return embeddings[0] if embeddings else []
+        try:
+            embedding = self.embed_model.get_query_embedding(query)
+            return embedding
+        except Exception as e:
+            logger.error(f"Error generating query embedding: {e}")
+            raise
+    
+    def get_embed_model(self):
+        """Return the underlying HuggingFace embedding model for use with llama_index Settings."""
+        return self.embed_model

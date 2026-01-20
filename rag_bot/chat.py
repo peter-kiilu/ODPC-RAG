@@ -1,8 +1,8 @@
-"""Chat interface with LLM integration."""
+"""Chat interface with Groq LLM integration."""
 
 import logging
 from typing import List, Dict, Optional
-from openai import OpenAI
+from groq import Groq
 
 from .config import config
 from .retriever import Retriever
@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 class ChatBot:
-    """RAG-powered chatbot for ODPC queries."""
+    """RAG-powered chatbot for ODPC queries using Groq."""
     
     def __init__(self):
         """Initialize the chatbot."""
-        self.client = OpenAI(api_key=config.OPENAI_API_KEY)
+        self.client = Groq(api_key=config.GROQ_API_KEY)
         self.retriever = Retriever()
         self.conversation_history: List[Dict[str, str]] = []
         self.model = config.LLM_MODEL
@@ -50,7 +50,7 @@ class ChatBot:
         messages.append({"role": "user", "content": qa_prompt})
         
         try:
-            # Call OpenAI API
+            # Call Groq API
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
@@ -71,7 +71,7 @@ class ChatBot:
             }
             
         except Exception as e:
-            logger.error(f"Error calling OpenAI API: {e}")
+            logger.error(f"Error calling Groq API: {e}")
             return {
                 "response": f"I encountered an error processing your request: {str(e)}",
                 "sources": [],

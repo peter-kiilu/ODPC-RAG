@@ -12,7 +12,7 @@ class Config:
     """Application configuration."""
     
     # API Keys
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     
     # Paths
     BASE_DIR: Path = Path(__file__).parent.parent
@@ -20,12 +20,14 @@ class Config:
     DOWNLOADS_DIR: Path = DATA_DIR / "downloads"
     VECTOR_DB_DIR: Path = BASE_DIR / "rag_bot" / "chroma_db"
     
-    # Embedding settings
-    EMBEDDING_MODEL: str = "text-embedding-3-small"
-    EMBEDDING_DIMENSIONS: int = 1536
+    # Embedding settings (HuggingFace BAAI/bge-small-en-v1.5)
+    EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"
+    EMBEDDING_DIMENSIONS: int = 384  # bge-small-en-v1.5 outputs 384 dimensions
+    EMBEDDING_DEVICE: str = "cpu"
+    EMBEDDING_BATCH_SIZE: int = 8
     
-    # LLM settings
-    LLM_MODEL: str = "gpt-4o-mini"
+    # LLM settings (Groq)
+    LLM_MODEL: str = "llama-3.3-70b-versatile"  # Groq's Llama 3.3 70B model
     LLM_TEMPERATURE: float = 0.7
     LLM_MAX_TOKENS: int = 1000
     
@@ -39,8 +41,8 @@ class Config:
     @classmethod
     def validate(cls) -> bool:
         """Validate required configuration."""
-        if not cls.OPENAI_API_KEY:
-            print("Error: OPENAI_API_KEY not set in environment")
+        if not cls.GROQ_API_KEY:
+            print("Error: GROQ_API_KEY not set in environment")
             return False
         return True
 
