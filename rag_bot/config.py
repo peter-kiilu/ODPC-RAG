@@ -16,8 +16,8 @@ class Config:
     
     # Paths
     BASE_DIR: Path = Path(__file__).parent.parent
-    DATA_DIR: Path = BASE_DIR / "rag_crawler" / "output_single"
-    DOWNLOADS_DIR: Path = DATA_DIR / "downloads"
+    DATA_DIR: Path = BASE_DIR / "data" / "markdown"
+    DOWNLOADS_DIR: Path = BASE_DIR / 'data' / "documents"
     VECTOR_DB_DIR: Path = BASE_DIR / "rag_bot" / "chroma_db"
     
     # Embedding settings (HuggingFace BAAI/bge-small-en-v1.5)

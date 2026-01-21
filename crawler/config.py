@@ -21,7 +21,9 @@ class Config:
         r"\.xml$", r"\.rss$", r"\.json$", r"\.js$", r"\.css$",
         r"/cdn-cgi/", r"/search", r"/account", r"/cart", r"/checkout",
         r"\/tagged\/", r"\/users\/", r"\/login", r"\/signup", r"\/logout",
-        r"\.mp3$", r"\.wav", r"\.mp4$", r"\.webp$", r"\.svg$", r"\.ico$",
+        r"\.mp3$", r"\.wav$", r"\.mp4$", r"\.webp$", r"\.svg$", r"\.ico$",
+        # Strict Image Exclusion
+        r"\.(jpg|jpeg|png|gif|bmp|tiff|jfif)$",
         # WordPress specific
         r"/wp-admin/", r"/wp-includes/", r"/wp-content/plugins/",
         r"/wp-content/themes/.*\.(css|js)$",

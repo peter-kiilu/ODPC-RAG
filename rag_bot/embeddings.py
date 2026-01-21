@@ -30,39 +30,57 @@ class EmbeddingGenerator:
         )
         logger.info(f"Initialized HuggingFace embedding model: {self.model_name}")
         
-    def embed_texts(self, texts: List[str]) -> List[List[float]]:
-        """Generate embeddings for a list of texts.
+    # def embed_texts(self, texts: List[str]) -> List[List[float]]:
+    #     """Generate embeddings for a list of texts.
         
-        Args:
-            texts: List of text strings to embed.
+    #     Args:
+    #         texts: List of text strings to embed.
             
-        Returns:
-            List of embedding vectors.
-        """
+    #     Returns:
+    #         List of embedding vectors.
+    #     """
+    #     if not texts:
+    #         return []
+        
+    #     all_embeddings = []
+        
+    #     try:
+    #         for i in range(0, len(texts), self.batch_size):
+    #             batch = texts[i:i + self.batch_size]
+                
+    #             # Get embeddings for each text in the batch
+    #             batch_embeddings = [
+    #                 self.embed_model.get_text_embedding(text) for text in batch
+    #             ]
+    #             all_embeddings.extend(batch_embeddings)
+                
+    #             logger.debug(f"Generated embeddings for batch {i // self.batch_size + 1}")
+                
+    #     except Exception as e:
+    #         logger.error(f"Error generating embeddings: {e}")
+    #         raise
+        
+    #     logger.info(f"Generated {len(all_embeddings)} embeddings")
+    #     return all_embeddings   
+    
+    def embed_texts(self, texts: List[str]) -> List[List[float]]:
+        """Generate embeddings for a list of texts using optimized batching."""
         if not texts:
             return []
         
-        all_embeddings = []
-        
         try:
-            for i in range(0, len(texts), self.batch_size):
-                batch = texts[i:i + self.batch_size]
-                
-                # Get embeddings for each text in the batch
-                batch_embeddings = [
-                    self.embed_model.get_text_embedding(text) for text in batch
-                ]
-                all_embeddings.extend(batch_embeddings)
-                
-                logger.debug(f"Generated embeddings for batch {i // self.batch_size + 1}")
-                
+            # LlamaIndex's built-in batch method
+            # It uses the self.batch_size you defined in __init__ automatically
+            all_embeddings = self.embed_model.get_text_embedding_batch(
+                texts, 
+                show_progress=True  # This will give you a nice progress bar!
+            )
+            return all_embeddings
+            
         except Exception as e:
             logger.error(f"Error generating embeddings: {e}")
             raise
         
-        logger.info(f"Generated {len(all_embeddings)} embeddings")
-        return all_embeddings
-    
     def embed_query(self, query: str) -> List[float]:
         """Generate embedding for a single query.
         
