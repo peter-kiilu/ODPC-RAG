@@ -17,3 +17,7 @@ llama-index-embeddings-huggingface>=0.1.0
 sentence-transformers>=2.2.0
 torch>=2.0.0
 groq>=0.4.0
+
+# api
+fastapi==0.128.0
+uvicorn==0.40.0
