@@ -4,13 +4,20 @@ import hashlib
 from urllib.parse import urlparse
 
 def normalize_url(url):
-    # Normalize urls to remove the trailing '/' and # section names
-    url = url.split('#')[0]
+    # Skip URLs with brackets that cause IPv6 parsing errors
+    if "[" in url or "]" in url:
+        return None
     
-    url = url.rstrip('/')
-    
-    # owercase everything to be safe
-    return url.lower()
+    try:
+        # Normalize urls to remove the trailing '/' and # section names
+        url = url.split('#')[0]
+        
+        url = url.rstrip('/')
+        
+        # lowercase everything to be safe
+        return url.lower()
+    except Exception:
+        return None
 
 def is_valid_url(url, start_url):
     if not url:
