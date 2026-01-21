@@ -113,3 +113,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# data
+data
+
+# node modules
+node_modules
