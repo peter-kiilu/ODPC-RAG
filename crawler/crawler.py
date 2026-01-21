@@ -180,19 +180,36 @@ class Crawler:
             container = soup
 
         for link in container.find_all('a', href=True):
-            url = urljoin(current_url, link["href"])
-            clean_url = normalize_url(url)
+            try:
+                href = link["href"]
+                
+                # Skip obviously problematic URLs before urljoin
+                if "[" in href or "]" in href:
+                    continue
+                    
+                url = urljoin(current_url, href)
+                clean_url = normalize_url(url)
 
-            if self.is_excluded(clean_url):
+                # Skip invalid URLs that couldn't be normalized
+                if clean_url is None:
+                    continue
+
+                if self.is_excluded(clean_url):
+                    continue
+
+                if any(url.endswith(ext) for ext in Config.DOCUMENT_EXTENSIONS): # Do not use the clean url here
+                    self.download_files(url)
+                    continue
+
+                if is_valid_url(clean_url, self.start) and clean_url not in self.visited:
+                        if clean_url not in self.q:
+                            self.q.append(clean_url)
+            except ValueError as e:
+                logging.debug(f"Skipping invalid URL: {link.get('href', 'unknown')} - {e}")
                 continue
-
-            if any(url.endswith(ext) for ext in Config.DOCUMENT_EXTENSIONS): # Do not use the clean url here
-                self.download_files(url)
+            except Exception as e:
+                logging.debug(f"Error processing link: {e}")
                 continue
-
-            if is_valid_url(clean_url, self.start) and clean_url not in self.visited:
-                    if clean_url not in self.q:
-                        self.q.append(clean_url)
 
     
     def is_excluded(self, url):
