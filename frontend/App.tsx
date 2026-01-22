@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
-      text: "Hujambo! I am your ODPC Kenya Bot. I safeguard your data with the power of the law and the speed of a gazelle. How can I help you today?",
+      text: "Hujambo! I am your ODPC Kenya Shield Bot. I safeguard your data with the power of the law and the speed of a gazelle. How can I help you today?",
       sender: 'bot',
       timestamp: new Date(),
     }
@@ -149,7 +149,7 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
-        <button
+        <button 
           onClick={handleClear}
           className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
           title="Clear memory"
@@ -159,7 +159,7 @@ const App: React.FC = () => {
       </header>
 
       {/* Chat Area */}
-      <main
+      <main 
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50"
       >
@@ -167,14 +167,14 @@ const App: React.FC = () => {
           {messages.map((msg) => (
             <MessageBubble key={msg.id} message={msg} />
           ))}
-
+          
           {isLoading && (
             <div className="flex w-full mb-6 justify-start">
               <div className="flex flex-row">
                 <div className="mt-1 mr-3 flex-shrink-0 animate-bounce">
-                  <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-slate-300 flex items-center justify-center">
+                   <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-slate-300 flex items-center justify-center">
                     <i className="fa-solid fa-microchip text-slate-400"></i>
-                  </div>
+                   </div>
                 </div>
                 <div className="flex flex-col">
                   <div className="px-5 py-3 bg-white border border-slate-200 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-3">
@@ -207,16 +207,17 @@ const App: React.FC = () => {
               disabled={isLoading}
             />
             <div className="absolute right-4 bottom-4 text-slate-300">
-              <i className="fa-solid fa-keyboard"></i>
+               <i className="fa-solid fa-keyboard"></i>
             </div>
           </div>
           <button
             onClick={handleSend}
             disabled={!inputText.trim() || isLoading}
-            className={`h-14 w-14 rounded-2xl flex items-center justify-center shadow-lg transition-all ${!inputText.trim() || isLoading
+            className={`h-14 w-14 rounded-2xl flex items-center justify-center shadow-lg transition-all ${
+              !inputText.trim() || isLoading
                 ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
                 : 'bg-green-700 text-white hover:bg-green-800 hover:scale-105 active:scale-95'
-              }`}
+            }`}
           >
             <i className={`fa-solid ${isLoading ? 'fa-spinner fa-spin' : 'fa-paper-plane'} text-lg`}></i>
           </button>

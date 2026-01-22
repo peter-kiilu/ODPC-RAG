@@ -8,9 +8,9 @@ logger = logging.getLogger(__name__)
 
 
 class EmbeddingGenerator:
-    """Generate embeddings using HuggingFace BAAI/bge-small-en-v1.5 model."""
+    """Generate embeddings using HuggingFace multilingual BAAI/bge-m3 model."""
     
-    def __init__(self, model_name: str = "BAAI/bge-small-en-v1.5", device: str = "cpu", batch_size: int = 8):
+    def __init__(self, model_name: str = "BAAI/bge-m3", device: str = "cpu", batch_size: int = 8):
         """Initialize the embedding generator.
         
         Args:
@@ -27,6 +27,7 @@ class EmbeddingGenerator:
             model_name=self.model_name,
             device=self.device,
             embed_batch_size=self.batch_size,
+            normalize=True,
         )
         logger.info(f"Initialized HuggingFace embedding model: {self.model_name}")
         

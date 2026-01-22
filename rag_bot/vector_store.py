@@ -37,7 +37,7 @@ class VectorStore:
         # Get or create collection
         self.collection = self.client.get_or_create_collection(
             name=self.COLLECTION_NAME,
-            metadata={"description": "ODPC Kenya document embeddings"}
+            metadata={"description": "ODPC Kenya document embeddings", "hnsw:space": "cosine"}
         )
         
         # Embedding generator
@@ -91,6 +91,17 @@ class VectorStore:
             logger.debug(f"Added batch {i // batch_size + 1}")
         
         logger.info(f"Added {len(chunks)} chunks. Total: {self.collection.count()}")
+
+    def _distance_to_score(self, distance: float) -> float:
+        """
+        Convert distance to similarity score.
+        
+        For cosine distance: distance = 1 - cosine_similarity
+        So: similarity = 1 - distance
+        Clamp to [0, 1] range.
+        """
+        score = 1.0 - distance
+        return max(0.0, min(1.0, score))
     
     def search(
         self,
@@ -126,7 +137,7 @@ class VectorStore:
                     "content": doc,
                     "metadata": results["metadatas"][0][i] if results["metadatas"] else {},
                     "distance": results["distances"][0][i] if results["distances"] else 0,
-                    "score": 1 - (results["distances"][0][i] if results["distances"] else 0)
+                    "score": self._distance_to_score(results["distances"][0][i])
                 })
         
         return formatted
@@ -136,7 +147,7 @@ class VectorStore:
         self.client.delete_collection(self.COLLECTION_NAME)
         self.collection = self.client.create_collection(
             name=self.COLLECTION_NAME,
-            metadata={"description": "ODPC Kenya document embeddings"}
+            metadata={"description": "ODPC Kenya document embeddings", "hnsw:space": "cosine" }
         )
         logger.info("Vector store cleared")
     
