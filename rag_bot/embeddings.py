@@ -2,6 +2,7 @@
 
 import logging
 from typing import List
+import torch
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 logger = logging.getLogger(__name__)
@@ -19,7 +20,7 @@ class EmbeddingGenerator:
             batch_size: Batch size for embedding generation.
         """
         self.model_name = model_name
-        self.device = device
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.batch_size = batch_size
         
         # Initialize the HuggingFace embedding model
@@ -27,6 +28,7 @@ class EmbeddingGenerator:
             model_name=self.model_name,
             device=self.device,
             embed_batch_size=self.batch_size,
+            normalize=True,
         )
         logger.info(f"Initialized HuggingFace embedding model: {self.model_name}")
         

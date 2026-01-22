@@ -15,6 +15,7 @@ from .chunker import TextChunker
 from .vector_store import VectorStore
 from .chat import ChatBot
 
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,

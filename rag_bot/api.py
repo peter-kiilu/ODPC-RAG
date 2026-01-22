@@ -11,16 +11,13 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI(title="ODPC Kenya Bot")
 
 origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "https://3000-w-rickmwasofficial-mkpfbulw.cluster-s5xdz26smvgniwoeurkaozovss.cloudworkstations.dev",
 ]
 
 # 2. Add the middleware to the app
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,          
+    allow_origins=["*"],         
     allow_credentials=True,
     allow_methods=["*"],            
     allow_headers=["*"],            

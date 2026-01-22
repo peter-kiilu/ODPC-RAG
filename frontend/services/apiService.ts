@@ -2,7 +2,7 @@
 import { ChatRequest, ChatResponse, HealthStatus } from '../types';
 
 // EDIT THIS BASE URL TO YOUR ACTUAL BACKEND LINK
-const BASE_URL = 'http://localhost:8000'; 
+const BASE_URL = 'https://8000-w-rickmwasofficial-mkpfbulw.cluster-s5xdz26smvgniwoeurkaozovss.cloudworkstations.dev'; 
 
 export const apiService = {
   async sendMessage(message: string): Promise<ChatResponse> {
@@ -11,6 +11,7 @@ export const apiService = {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify({ message }),
     });
 
@@ -25,6 +26,7 @@ export const apiService = {
   async clearHistory(): Promise<void> {
     const response = await fetch(`${BASE_URL}/clear`, {
       method: 'POST',
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -33,7 +35,9 @@ export const apiService = {
   },
 
   async checkHealth(): Promise<HealthStatus> {
-    const response = await fetch(`${BASE_URL}/health`);
+    const response = await fetch(`${BASE_URL}/health`, {
+      credentials: 'include',
+    });
     if (!response.ok) throw new Error('Bot is feeling sick.');
     return response.json();
   }
