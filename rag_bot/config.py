@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+load_dotenv()
 
 # Load environment variables from rag_bot/.env
 ENV_FILE = Path(__file__).parent / ".env"
