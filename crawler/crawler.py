@@ -17,8 +17,8 @@ from urllib.robotparser import RobotFileParser
 import hashlib
 import json
 import logging
-from config import Config
-from utils import is_valid_url, normalize_url
+from .config import Config
+from .utils import is_valid_url, normalize_url
 
 # Initialize HTML to Markdown converter
 html_converter = html2text.HTML2Text()
