@@ -118,7 +118,6 @@ ODPC-RAG/
 ├── .env                  # Environment variables
 ├── .gitignore
 ├── requirements.txt      # Python dependencies
-└── my_changes.patch
 ```
 
 ## Troubleshooting
@@ -147,14 +146,3 @@ ODPC-RAG/
 - 🛡️ **Topic boundaries** - Focused on data protection topics only
 - 🚀 **GPU acceleration** - Automatic GPU detection for embeddings
 - 📊 **Source citations** - Tracks and displays information sources
-
-## License
-
-Check the repository for LICENSE file.
-
-## Contributing
-
-Contributions welcome! Please:
-- Follow existing code style
-- Add tests for new features
-- Keep changes focused and well-documented
