@@ -33,18 +33,20 @@ app = FastAPI(
     description="AI Assistant for Office of the Data Protection Commissioner Kenya"
 )
 
-origins = [
-    "https://3000-w-rickmwasofficial-mkpfbulw.cluster-s5xdz26smvgniwoeurkaozovss.cloudworkstations.dev",
-]
 
 # 2. Add the middleware to the app
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=[
+        "https://3000-w-rickmwasofficial-mkpfbulw.cluster-s5xdz26smvgniwoeurkaozovss.cloudworkstations.dev",
+        "http://localhost:3000",  # For local development
+        "*"  # Allow all origins - configure more strictly for production
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
-    expose_headers=["*"]
+    expose_headers=["*"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 # initialize database on startup
