@@ -40,7 +40,8 @@ chromadb==1.4.1
 
 # Embeddings & ML
 sentence-transformers==5.2.0
-torch==2.10.0+cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.10.0
 transformers==4.57.6
 tokenizers==0.22.2
 huggingface-hub==0.36.0
