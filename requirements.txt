@@ -19,11 +19,10 @@ llama-index-llms-groq==0.4.1
 llama-index-embeddings-huggingface==0.6.1
 llama-index-vector-stores-chroma==0.5.5
 chromadb==1.4.1
-sentence-transformers==3.3.1
+sentence-transformers==5.2.0
 transformers==4.46.3
 
 # PyTorch - CPU only (no +cpu suffix needed for standard install)
---extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.10.0
 
 # Text Processing
@@ -53,7 +52,6 @@ python-dateutil==2.9.0.post0
 
 # Data Processing
 numpy==2.2.3
-pandas==2.2.3
 
 # YAML & Config
 pyyaml==6.0.2
