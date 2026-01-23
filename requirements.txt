@@ -1,99 +1,62 @@
-# Async & HTTP
-aiohappyeyeballs==2.6.1
-aiohttp==3.13.3
-aiosignal==1.4.0
-anyio==4.12.1
-asyncpg==0.31.0
-
-# Type Annotations & Validation
-annotated-types==0.7.0
-attrs==25.4.0
-pydantic==2.12.5
-pydantic_core==2.41.5
-typing_extensions==4.15.0
-
-# Web Framework
-fastapi==0.128.0
-starlette==0.50.0
-uvicorn==0.40.0
-httptools==0.7.1
-uvloop==0.22.1
-watchfiles==1.1.1
-websockets==16.0
-
-# HTTP Clients
-httpcore==1.0.9
-httpx==0.28.1
-h11==0.16.0
-certifi==2026.1.4
-idna==3.11
-
-# LLM & RAG
-groq==1.0.0
-llama-index-core==0.14.13
-llama-index-embeddings-huggingface==0.6.1
-llama-index-llms-groq==0.4.1
-llama-index-vector-stores-chroma==0.5.5
-
-# Vector Database
-chromadb==1.4.1
-
-# Embeddings & ML
-sentence-transformers==5.2.0
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.10.0
-transformers==4.57.6
-tokenizers==0.22.2
-huggingface-hub==0.36.0
-safetensors==0.7.0
-
-# Scientific Computing (required by sentence-transformers)
-numpy==2.4.1
-scipy==1.17.0
-scikit-learn==1.8.0
-joblib==1.5.3
-threadpoolctl==3.6.0
+# Core API Framework
+fastapi==0.115.12
+uvicorn[standard]==0.34.0
+pydantic==2.10.6
+pydantic-settings==2.7.1
 
 # Database
-sqlalchemy==2.0.46
-psycopg2-binary==2.9.11
-greenlet==3.3.0
+sqlalchemy==2.0.36
+psycopg2-binary==2.9.10
+asyncpg==0.30.0
+alembic==1.14.0
 
-# Document Processing
-PyMuPDF==1.26.7
-beautifulsoup4==4.14.3
-soupsieve==2.8.3
-lxml==6.0.2
-html2text==2025.4.15
+# LLM & AI
+groq==0.15.0
+llama-index-llms-groq==0.3.1
+llama-index-core==0.13.7
+
+# Embeddings & Vector Store
+llama-index-embeddings-huggingface==0.5.6
+llama-index-vector-stores-chroma==0.5.5
+chromadb==1.4.1
+sentence-transformers==3.3.1
+transformers==4.46.3
+
+# PyTorch - CPU only (no +cpu suffix needed for standard install)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.10.0
+
+# Text Processing
+llama-index-readers-web==0.3.10
+beautifulsoup4==4.12.3
+lxml==5.3.0
+markdownify==0.14.1
+html2text==2024.2.26
+python-dotenv==1.0.1
+
+# HTTP & Networking
+httpx==0.28.1
+requests==2.32.3
+aiohttp==3.11.11
 
 # Utilities
-python-dotenv==1.2.1
-requests==2.32.5
-urllib3==2.6.3
-click==8.3.1
+tenacity==9.0.0
 tqdm==4.67.1
-filelock==3.20.3
-fsspec==2026.1.0
-packaging==26.0
-PyYAML==6.0.3
+tiktoken==0.8.0
+deprecated==1.2.15
+wrapt==1.17.2
+typing-extensions==4.12.2
+python-multipart==0.0.20
 
-# CLI & Display
-rich==14.2.0
-markdown-it-py==4.0.0
-mdurl==0.1.2
-Pygments==2.19.2
+# Date & Time
+python-dateutil==2.9.0.post0
 
-# JSON & Serialization
-orjson==3.11.5
-jiter==0.12.0
+# Data Processing
+numpy==2.2.3
+pandas==2.2.3
 
-# Async & Concurrency
-nest-asyncio==1.6.0
-backoff==2.2.1
-tenacity==9.1.2
+# YAML & Config
+pyyaml==6.0.2
 
-# Networking
-multidict==6.7.0
-frozenlist==1.8.0
-yarl==1.22.0
-propcache==0.4.1
+# Logging
+loguru==0.7.3
