@@ -20,7 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Build all wheels at once (reuses cache if requirements.txt unchanged)
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip wheel --no-deps --wheel-dir /wheels -r requirements.txt
+    pip install --upgrade pip && \
+    pip wheel --no-deps --wheel-dir /wheels --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
 
 # -------------------------
 # Stage 2: Runtime - Minimal production image
@@ -49,8 +50,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Python packages from pre-built wheels
 COPY --from=builder /wheels /wheels
-RUN pip install --no-cache-dir --no-index --find-links=/wheels /wheels/* && \
-    rm -rf /wheels
+COPY requirements.txt .
+RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt && \
+    rm -rf /wheels requirements.txt
 
 # Pre-download HuggingFace embedding model (saves 30-40s on first startup!)
 RUN python -c "from sentence_transformers import SentenceTransformer; \
