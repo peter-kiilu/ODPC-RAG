@@ -1,4 +1,6 @@
-# Stage 1: Builder (install all Python dependencies)
+# -------------------------
+# Stage 1: Builder
+# -------------------------
 FROM python:3.11-slim AS backend-builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -7,19 +9,22 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install build tools
+# Build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
     g++ \
     libffi-dev \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
-# Stage 2: Final image
+# -------------------------
+# Stage 2: Final Image
+# -------------------------
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -28,20 +33,21 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Create non-root user
+# Non-root user
 RUN groupadd --gid 1000 appuser \
     && useradd --uid 1000 --gid 1000 -m appuser
 
-# Install runtime dependencies
+# Runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     curl \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python packages from builder
 COPY --from=backend-builder /root/.local /home/appuser/.local
 
-# Copy project files
+# Copy project
 COPY --chown=appuser:appuser rag_bot/ ./rag_bot/
 COPY --chown=appuser:appuser crawler/ ./crawler/
 COPY --chown=appuser:appuser entrypoint.sh ./
