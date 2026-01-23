@@ -57,5 +57,56 @@ class TextChunker:
                     chunk_index=i
                 ))
         
-        logger.info(f"Created {len(all_chunks)} chunks from {len(documents)} documents")
-        return all_chunks
+        # Don't forget the last chunk
+        if current_chunk and self._get_size(current_chunk) >= self.min_chunk_size:
+            chunks.append(self._create_chunk(
+                current_chunk, document.metadata, chunk_index
+            ))
+        
+        return chunks
+    
+    def _create_chunk(self, content: str, doc_metadata: dict, index: int) -> Chunk:
+        """Create a chunk with metadata."""
+        metadata = doc_metadata.copy()
+        metadata["chunk_index"] = index
+        return Chunk(content=content, metadata=metadata, chunk_index=index)
+    
+    def _get_size(self, text: str) -> int:
+        """Get size of text in tokens or characters."""
+        if self.use_tokens and self.encoder:
+            return len(self.encoder.encode(text))
+        return len(text)
+    
+    def _get_overlap(self, text: str) -> str:
+        """Get the overlap portion from the end of text."""
+        if not text or self.chunk_overlap <= 0:
+            return ""
+        
+        if self.use_tokens and self.encoder:
+            tokens = self.encoder.encode(text)
+            overlap_tokens = tokens[-self.chunk_overlap:]
+            return self.encoder.decode(overlap_tokens)
+        else:
+            return text[-self.chunk_overlap:]
+    
+    def _split_long_text(self, text: str) -> List[str]:
+        """Split a long text into smaller pieces."""
+        chunks = []
+        
+        # Try splitting by sentences
+        sentences = text.replace(". ", ".\n").split("\n")
+        current = ""
+        
+        for sentence in sentences:
+            test = current + " " + sentence if current else sentence
+            if self._get_size(test) <= self.chunk_size:
+                current = test
+            else:
+                if current:
+                    chunks.append(current.strip())
+                current = sentence
+        
+        if current:
+            chunks.append(current.strip())
+        
+        return chunks

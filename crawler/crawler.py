@@ -228,24 +228,49 @@ class Crawler:
             ('main', {'id': 'content'}),
             ('article', {}),
             ('main', {}),
+            ('div', {'class': 'entry-content'}),
+            ('div', {'class': 'post-content'}),
         ]
 
+        content = None
         for tag, attrs in selectors:
-            content = soup.find(tag, attrs)
-            if content:
-                # Check if it has substantial content
-                text = content.get_text(strip=True)
-                if len(text) > 200:  # At least 200 chars
+            found = soup.find(tag, attrs)
+            if found:
+                text = found.get_text(strip=True)
+                if len(text) > 200:
+                    content = found
                     logging.debug(f"Found content in: <{tag} {attrs}>")
+                    break  # FIXED: Break when content is found
+
+        # Fallback to body if no content found
+        if content is None:
+            content = soup.find('body')
+            if content:
+                logging.debug(f"Using body as fallback for: {url}")
+        
+        if content is None:
+            logging.warning(f"No content found for: {url}")
+            return
 
         # extract title for the filename
         title = soup.title.string if soup.title else f"{url}"
+        
+        # Skip Cloudflare challenge pages
+        if title and ('please wait' in title.lower() or 'just a moment' in title.lower() or 'one moment' in title.lower()):
+            logging.warning(f"Cloudflare challenge detected, skipping: {url}")
+            return
+            
         meta_desc_tag = soup.find("meta", attrs={"name": "description"})
         meta_desc = meta_desc_tag.get("content", "") if meta_desc_tag else ""
         clean_title = re.sub(r'[^\w\s-]', '', title).strip().replace(" ", "_")
         clean_title = clean_title[:200]
 
         markdown_content = html_converter.handle(str(content))
+        
+        # Skip near-empty pages
+        if len(markdown_content.strip()) < 100:
+            logging.info(f"Content too short, skipping: {url}")
+            return
 
         # Check for duplicates
         content_hash = hashlib.md5(markdown_content.encode()).hexdigest()
@@ -258,20 +283,23 @@ class Crawler:
         filepath = os.path.join(Config.MD_DIR, filename)
         counter = 1
         while os.path.exists(filepath):
-            filename = f"{clean_title}_{counter}.md" # Avoid file name conflicts, if they have the same name
+            filename = f"{clean_title}_{counter}.md"
             filepath = os.path.join(Config.MD_DIR, filename)
             counter += 1
 
         front = f"""---
-                title: "{title}"
-                source: "{url}"
-                description: "{meta_desc}"
-                date_crawled: "{time.strftime('%Y-%m-%d %H:%M:%S')}"
-                ---
+title: "{title}"
+source: "{url}"
+description: "{meta_desc}"
+date_crawled: "{time.strftime('%Y-%m-%d %H:%M:%S')}"
+---
 
-                """
-        with open(os.path.join(Config.MD_DIR, filename), "w", encoding="utf-8") as f:
+"""
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(front + markdown_content)
+        
+        logging.info(f"Saved: {filename}")
+
 
     def download_files(self, url):
         try:

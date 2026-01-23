@@ -86,27 +86,3 @@ class ChatBot:
     def get_history(self) -> List[Dict[str, str]]:
         """Get conversation history."""
         return self.conversation_history.copy()
-    
-    def load_history_from_db(self, db_messages: List) -> None:
-        """Load conversation history from database messages.
-        
-        Args:
-            db_messages: List of ChatMessage objects from database
-        """
-        self.conversation_history = []
-        
-        for msg in db_messages:
-            # User messages
-            if msg.role == "user" and msg.user_message:
-                self.conversation_history.append({
-                    "role": "user",
-                    "content": msg.user_message
-                })
-            # Assistant messages
-            elif msg.role == "assistant" and msg.response:
-                self.conversation_history.append({
-                    "role": "assistant",
-                    "content": msg.response
-                })
-        
-        logger.info(f"Loaded {len(self.conversation_history)} messages from database into bot memory")
