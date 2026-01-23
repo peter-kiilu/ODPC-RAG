@@ -15,7 +15,6 @@ from .chunker import TextChunker
 from .vector_store import VectorStore
 from .chat import ChatBot
 
-
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -129,7 +128,7 @@ def start_chat() -> None:
                 console.print("[dim]Conversation cleared.[/dim]\n")
                 continue
             
-            # Get response
+            # Get response (synchronous - simple and fast)
             console.print()
             with console.status("[bold green]Thinking...[/bold green]"):
                 result = bot.chat(user_input)
@@ -143,6 +142,10 @@ def start_chat() -> None:
                 console.print("\n[dim]Sources:[/dim]")
                 for source in result["sources"][:3]:
                     console.print(f"  [dim]• {source}[/dim]")
+            
+            # Display token usage
+            if result.get("tokens_used"):
+                console.print(f"\n[dim]Tokens used: {result['tokens_used']}[/dim]")
             
             console.print()
             

@@ -1,7 +1,7 @@
-"""Chat interface with Groq LLM integration."""
+"""Chat interface with controlled RAG workflow and database history support."""
 
 import logging
-from typing import List, Dict, Optional
+from typing import List, Dict, Any
 from groq import Groq
 
 from .config import config
@@ -30,19 +30,19 @@ class ChatBot:
         Returns:
             Dict with response, sources, and metadata.
         """
-        # Retrieve relevant context
+        # Step 1: Retrieve relevant context from vector store
         context = self.retriever.get_context(user_message)
         sources = self.retriever.get_sources(user_message)
         
-        # Format the prompt
+        # Step 2: Format the prompt with context
         qa_prompt = format_qa_prompt(context, user_message)
         
-        # Build messages for API call
+        # Step 3: Build messages for API call
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
         ]
         
-        # Add conversation history (last 4 exchanges)
+        # Add conversation history (last 4 exchanges = 8 messages)
         for msg in self.conversation_history[-8:]:
             messages.append(msg)
         
@@ -50,7 +50,7 @@ class ChatBot:
         messages.append({"role": "user", "content": qa_prompt})
         
         try:
-            # Call Groq API
+            # Step 4: Call Groq API (single call)
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
@@ -60,7 +60,7 @@ class ChatBot:
             
             assistant_message = response.choices[0].message.content
             
-            # Update conversation history
+            # Step 5: Update conversation history
             self.conversation_history.append({"role": "user", "content": user_message})
             self.conversation_history.append({"role": "assistant", "content": assistant_message})
             

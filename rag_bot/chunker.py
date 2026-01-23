@@ -1,12 +1,12 @@
 """Text chunker for splitting documents into smaller pieces."""
 
 import logging
-from typing import List, Optional
+from typing import List
 from dataclasses import dataclass, field
+from llama_index.core.node_parser import TokenTextSplitter
 from .document_loader import Document
 
 logger = logging.getLogger(__name__)
-
 
 @dataclass
 class Chunk:
@@ -19,98 +19,43 @@ class Chunk:
     def source(self) -> str:
         return self.metadata.get("source", "unknown")
 
-
 class TextChunker:
-    """Split documents into chunks for embedding."""
+    """Split documents into chunks using LlamaIndex TokenTextSplitter."""
     
     def __init__(
         self,
-        chunk_size: int = 500,
-        chunk_overlap: int = 100,
-        min_chunk_size: int = 50
+        chunk_size: int = 512,
+        chunk_overlap: int = 100
     ):
-        """Initialize the chunker.
-        
-        Args:
-            chunk_size: Target size of each chunk in characters.
-            chunk_overlap: Overlap between consecutive chunks.
-            min_chunk_size: Minimum size to keep a chunk.
-        """
+        """Initialize the chunker with token-based limits."""
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        self.min_chunk_size = min_chunk_size
         
-        # Try to use tiktoken for accurate token counting
-        try:
-            import tiktoken
-            self.encoder = tiktoken.get_encoding("cl100k_base")
-            self.use_tokens = True
-        except ImportError:
-            self.encoder = None
-            self.use_tokens = False
-            logger.warning("tiktoken not installed. Using character-based chunking.")
+        # Reference pattern: LlamaIndex native splitter handles the math
+        self.splitter = TokenTextSplitter(
+            chunk_size=self.chunk_size,
+            chunk_overlap=self.chunk_overlap,
+            separator="\n"
+        )
     
     def chunk_documents(self, documents: List[Document]) -> List[Chunk]:
-        """Split all documents into chunks.
-        
-        Args:
-            documents: List of documents to chunk.
-            
-        Returns:
-            List of Chunk objects.
-        """
+        """Split all documents into chunks."""
         all_chunks = []
         
         for doc in documents:
-            chunks = self._chunk_document(doc)
-            all_chunks.extend(chunks)
-        
-        logger.info(f"Created {len(all_chunks)} chunks from {len(documents)} documents")
-        return all_chunks
-    
-    def _chunk_document(self, document: Document) -> List[Chunk]:
-        """Split a single document into chunks."""
-        text = document.content
-        chunks = []
-        
-        # Split by paragraphs first
-        paragraphs = text.split("\n\n")
-        
-        current_chunk = ""
-        chunk_index = 0
-        
-        for para in paragraphs:
-            para = para.strip()
-            if not para:
-                continue
+            # Use the splitter to get clean strings
+            text_chunks = self.splitter.split_text(doc.content)
             
-            # Check if adding this paragraph exceeds chunk size
-            test_chunk = current_chunk + "\n\n" + para if current_chunk else para
-            
-            if self._get_size(test_chunk) <= self.chunk_size:
-                current_chunk = test_chunk
-            else:
-                # Save current chunk if it's big enough
-                if current_chunk and self._get_size(current_chunk) >= self.min_chunk_size:
-                    chunks.append(self._create_chunk(
-                        current_chunk, document.metadata, chunk_index
-                    ))
-                    chunk_index += 1
+            for i, text in enumerate(text_chunks):
+                # Build metadata including the index for incremental updates
+                metadata = doc.metadata.copy()
+                metadata["chunk_index"] = i
                 
-                # Handle paragraph that's too long
-                if self._get_size(para) > self.chunk_size:
-                    sub_chunks = self._split_long_text(para)
-                    for sub_chunk in sub_chunks:
-                        if self._get_size(sub_chunk) >= self.min_chunk_size:
-                            chunks.append(self._create_chunk(
-                                sub_chunk, document.metadata, chunk_index
-                            ))
-                            chunk_index += 1
-                    current_chunk = ""
-                else:
-                    # Start new chunk with overlap
-                    overlap = self._get_overlap(current_chunk)
-                    current_chunk = overlap + para if overlap else para
+                all_chunks.append(Chunk(
+                    content=text,
+                    metadata=metadata,
+                    chunk_index=i
+                ))
         
         # Don't forget the last chunk
         if current_chunk and self._get_size(current_chunk) >= self.min_chunk_size:

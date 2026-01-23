@@ -11,6 +11,11 @@ from .config import config
 from .chunker import Chunk
 from .embeddings import EmbeddingGenerator
 
+from llama_index.core import VectorStoreIndex, StorageContext, load_index_from_storage
+from llama_index.vector_stores.chroma import ChromaVectorStore
+import os
+from datetime import datetime
+
 logger = logging.getLogger(__name__)
 
 
@@ -41,58 +46,80 @@ class VectorStore:
             metadata={"description": "ODPC Kenya document embeddings", "hnsw:space": "cosine"}
         )
         
+        self.vector_store = ChromaVectorStore(chroma_collection=self.collection)
+        
         # Embedding generator with GPU support
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.embedder = EmbeddingGenerator(device=device)
         
         logger.info(f"Vector store initialized at {self.persist_dir}")
         logger.info(f"Collection has {self.collection.count()} documents")
+
+    def get_indexed_files(self) -> Dict[str, float]:
+        """Returns a map of {filename: last_modified_timestamp} for all indexed docs."""
+        # We fetch all metadatas from the collection
+        results = self.collection.get(include=["metadatas"])
+        indexed_files = {}
+        for meta in results["metadatas"]:
+            if "file_path" in meta and "last_modified" in meta:
+                # We keep the latest timestamp found for each file
+                path = meta["file_path"]
+                mtime = meta["last_modified"]
+                indexed_files[path] = max(indexed_files.get(path, 0), mtime)
+        return indexed_files
     
-    def add_chunks(self, chunks: List[Chunk]) -> None:
-        """Add chunks to the vector store.
-        
-        Args:
-            chunks: List of chunks to add.
-        """
+    def add_chunks(self, chunks: List[Chunk]) -> int:
+        """Upserts chunks and skips unchanged files."""
         if not chunks:
-            logger.warning("No chunks to add")
-            return
+            return 0
         
-        logger.info(f"Adding {len(chunks)} chunks to vector store...")
+        # 1. Get current state to identify what needs updating
+        indexed_files = self.get_indexed_files()
         
-        # Prepare data
-        ids = []
-        documents = []
-        metadatas = []
-        
-        for i, chunk in enumerate(chunks):
-            chunk_id = f"{chunk.metadata.get('file_path', 'doc')}_{chunk.chunk_index}"
-            # Sanitize ID
-            chunk_id = chunk_id.replace("\\", "_").replace("/", "_").replace(":", "_")
+        ids, documents, metadatas = [], [], []
+        skipped_count = 0
+
+        for chunk in chunks:
+            file_path = chunk.metadata.get('file_path')
+            # Check if file is already indexed and hasn't changed since then
+            current_mtime = os.path.getmtime(file_path) if os.path.exists(file_path) else 0
+            indexed_mtime = indexed_files.get(file_path, 0)
+
+            if current_mtime <= indexed_mtime and indexed_mtime != 0:
+                skipped_count += 1
+                continue
+
+            # 2. Prepare for Upsert
+            chunk_id = f"{file_path}_{chunk.chunk_index}".replace("\\", "_").replace("/", "_").replace(":", "_")
+            
+            # Add timestamp to metadata so we can check it next time
+            chunk.metadata["last_modified"] = current_mtime
             
             ids.append(chunk_id)
             documents.append(chunk.content)
             metadatas.append(chunk.metadata)
-        
-        # Generate embeddings
-        logger.info("Generating embeddings...")
+
+        if not ids:
+            logger.info(f"All {len(chunks)} chunks are already up to date. Skipping.")
+            return 0
+
+        # 3. Use upsert instead of add
+        # Upsert will update existing IDs or add new ones if they don't exist
+        logger.info(f"Upserting {len(ids)} chunks (skipped {skipped_count} unchanged)...")
         embeddings = self.embedder.embed_texts(documents)
         
-        # Add to collection in batches
         batch_size = 100
         for i in range(0, len(ids), batch_size):
             end = min(i + batch_size, len(ids))
-            
-            self.collection.add(
+            self.collection.upsert(
                 ids=ids[i:end],
                 embeddings=embeddings[i:end],
                 documents=documents[i:end],
                 metadatas=metadatas[i:end]
             )
-            
-            logger.debug(f"Added batch {i // batch_size + 1}")
         
-        logger.info(f"Added {len(chunks)} chunks. Total: {self.collection.count()}")
+        logger.info(f"Indexing complete. Total count: {self.collection.count()}")
+        return len(ids)
 
     def _distance_to_score(self, distance: float) -> float:
         """
