@@ -1,56 +1,97 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:15-alpine
     container_name: odpc-postgres
-    restart: always
+    restart: unless-stopped
+    
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-      POSTGRES_DB: ${POSTGRES_DB:-odpc_chatdb}
+      POSTGRES_DB: ${POSTGRES_DB:-odpc_db}
+    
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-odpc_chatdb}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin}"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 3
+    
+    networks:
+      - odpc_network
 
   odpc-rag:
     build:
       context: .
       dockerfile: Dockerfile
+      # Enable BuildKit caching
+      cache_from:
+        - odpc-rag:latest
+    
+    image: odpc-rag:latest
     container_name: odpc-rag
     restart: unless-stopped
+    
     ports:
       - "8000:8000"
+    
     depends_on:
       postgres:
         condition: service_healthy
+    
     environment:
-      GROQ_API_KEY: ${GROQ_API_KEY}
-      PYTHONPATH: /app
-      POSTGRES_USER: ${POSTGRES_USER:-user}
+      # API Key
+      GROQ_API_KEY: ${GROQ_API_KEY:?GROQ_API_KEY is required}
+      
+      # Database
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-odpc_chatdb}
-      DATABASE_URL: ${DATABASE_URL}
-      HF_HOME: /app/data/.cache/huggingface
-      SKIP_CRAWL: "0" # set to 1 if you want to skip crawling/indexing
+      POSTGRES_DB: ${POSTGRES_DB:-odpc_db}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-odpc_db}
+      
+      # Python
+      PYTHONPATH: /app
+      
+      # Cache directories
+      HF_HOME: /app/.cache/huggingface
+      TRANSFORMERS_CACHE: /app/.cache/huggingface
+      
+      # Control flag (default: skip crawling for fast startup)
+      SKIP_CRAWL: ${SKIP_CRAWL:-1}
+    
     volumes:
+      # Persistent data
       - ./rag_bot/chroma_db:/app/rag_bot/chroma_db
       - ./data:/app/data
+      - hf_cache:/app/.cache/huggingface
+    
+    networks:
+      - odpc_network
+    
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+    
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      timeout: 5s
+      retries: 2
+      start_period: 45s
 
 volumes:
   postgres_data:
+    driver: local
+  hf_cache:
+    driver: local
+
+networks:
+  odpc_network:
+    driver: bridge
