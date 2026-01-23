@@ -1,12 +1,14 @@
 # Git
-.git
+.git/
 .gitignore
+.gitattributes
 
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.Python
 venv/
 .venv/
 ENV/
@@ -17,63 +19,84 @@ build/
 .eggs/
 .pytest_cache/
 .mypy_cache/
+.tox/
 .coverage
+.coverage.*
 htmlcov/
-
-# Node
-node_modules/
-npm-debug.log*
-frontend/node_modules/
+.hypothesis/
+*.pyc
+*.pyo
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
-
-# Environment (handled via docker-compose)
-.env
-.env.local
-rag_bot/.env
-
-# OS
+*.swn
 .DS_Store
-Thumbs.db
+
+# Environment files
+.env
+.env.*
+!.env.example
 
 # Logs
 *.log
 logs/
 data/logs/
 
-# Old Docker files
-Dockerfile.backend
-Dockerfile.frontend
-nginx.conf
+# Temp files
+tmp/
+temp/
+*.tmp
 
-# Documentation
+# Documentation (except README)
 *.md
 !README.md
+docs/
+
+# Database files (use volumes!)
+rag_bot/chroma_db/
+chroma_db/
+*.db
+*.sqlite
+*.sqlite3
+
+# Data directories (use volumes!)
+data/
+!data/.gitkeep
+
+# Node modules
+node_modules/
+npm-debug.log*
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Tests
+tests/
+test_*.py
+*_test.py
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
 
 # Jupyter
 .ipynb_checkpoints/
+*.ipynb
 
-# Temp
-tmp/
-temp/
+# OS
+Thumbs.db
+.DS_Store
 
-# Database files (should use volumes, not copy into image)
-rag_bot/chroma_db/
-chroma_db/
-
-# Runtime state
+# State files
 crawler_state.json
+.db_initialized
 
-# Agent workflows
-.agent/
-.gemini/
-node_modules
-*.log
-__pycache__
-.git
-Dockerfile*
-docker-compose*.yml
+# Cache
+.cache/
+*.cache
