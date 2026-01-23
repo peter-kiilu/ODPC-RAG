@@ -146,14 +146,16 @@ class Crawler:
             'queue': list(self.q),
             'content_hashes': list(self.content_hashes)
         }
-        with open('crawler_state.json', 'w') as f:
+        state_path = os.path.join(Config.BASE_DIR, 'crawler_state.json')
+        with open(state_path, 'w') as f:
             json.dump(state, f)
         logging.debug("State saved")
 
     def load_state(self):
         """Load previous crawler state"""
         try:
-            with open('crawler_state.json', 'r') as f:
+            state_path = os.path.join(Config.BASE_DIR, 'crawler_state.json')
+            with open(state_path, 'r') as f:
                 state = json.load(f)
                 self.visited = set(state['visited'])
                 self.q = deque(state['queue'])

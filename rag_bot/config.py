@@ -23,22 +23,22 @@ class Config:
     VECTOR_DB_DIR: Path = BASE_DIR / "rag_bot" / "chroma_db"
     
     # Embedding settings (HuggingFace BAAI/bge-small-en-v1.5)
-    EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"
-    EMBEDDING_DIMENSIONS: int = 384  # bge-small-en-v1.5 outputs 384 dimensions
-    EMBEDDING_DEVICE: str = "cpu"
-    EMBEDDING_BATCH_SIZE: int = 8
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
+    EMBEDDING_DIMENSIONS: int = int(os.getenv("EMBEDDING_DIMENSIONS", 384))
+    EMBEDDING_DEVICE: str = os.getenv("EMBEDDING_DEVICE", "cpu")
+    EMBEDDING_BATCH_SIZE: int = int(os.getenv("EMBEDDING_BATCH_SIZE", 8))
     
     # LLM settings (Groq)
-    LLM_MODEL: str = "llama-3.3-70b-versatile"  # Groq's Llama 3.3 70B model
-    LLM_TEMPERATURE: float = 0.7
-    LLM_MAX_TOKENS: int = 1000
+    LLM_MODEL: str = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
+    LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", 0.7))
+    LLM_MAX_TOKENS: int = int(os.getenv("LLM_MAX_TOKENS", 1000))
     
     # Chunking settings
-    CHUNK_SIZE: int = 500  # tokens
-    CHUNK_OVERLAP: int = 100  # tokens
+    CHUNK_SIZE: int = int(os.getenv("CHUNK_SIZE", 500))
+    CHUNK_OVERLAP: int = int(os.getenv("CHUNK_OVERLAP", 100))
     
     # Retrieval settings
-    TOP_K: int = 5  # Number of chunks to retrieve
+    TOP_K: int = int(os.getenv("TOP_K", 5))
     
     @classmethod
     def validate(cls) -> bool:
