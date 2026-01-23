@@ -1,32 +1,47 @@
 #!/bin/bash
 set -e
 
-echo "Fixing permissions..."
+echo "======================================"
+echo "ODPC Kenya RAG Bot - Starting..."
+echo "======================================"
 
 # Ensure directories exist (host-mounted volumes)
 mkdir -p /app/data/markdown /app/data/documents /app/rag_bot/chroma_db
 
 # Fix ownership to appuser
-chown -R appuser:appuser /app/data /app/rag_bot/chroma_db
+chown -R appuser:appuser /app/data /app/rag_bot/chroma_db 2>/dev/null || true
+chmod -R 755 /app/data /app/rag_bot/chroma_db 2>/dev/null || true
 
-# Safe permissions
-chmod -R 755 /app/data /app/rag_bot/chroma_db
-
-echo "Dropping privileges to appuser..."
+echo "Switching to non-root user..."
 
 # Switch to appuser and continue
-exec gosu appuser bash -c "
-    if [ \"\$SKIP_CRAWL\" != \"1\" ]; then
-        echo 'Starting Crawler...'
-        python -m crawler.crawler
-
-        echo 'Starting Indexer...'
-        python -m rag_bot.main index
+exec gosu appuser bash -c '
+    # Parse SKIP_CRAWL (accepts: true, 1, yes, skip)
+    SHOULD_SKIP=false
+    if [[ "$SKIP_CRAWL" =~ ^(true|1|yes|skip)$ ]]; then
+        SHOULD_SKIP=true
     fi
 
-    echo 'Initializing Database...'
-    python -m rag_bot.db_init
+    if [ "$SHOULD_SKIP" = "false" ]; then
+        echo "📥 Starting Crawler..."
+        python -m crawler.crawler || echo "⚠️  Crawler failed, continuing..."
 
-    echo 'Starting API...'
-    exec uvicorn rag_bot.api:app --host 0.0.0.0 --port 8000
-"
+        echo "📚 Starting Indexer..."
+        python -m rag_bot.main index || echo "⚠️  Indexer failed, continuing..."
+    else
+        echo "⏭️  Skipping crawler and indexer (SKIP_CRAWL=$SKIP_CRAWL)"
+    fi
+
+    # Initialize database (skip if already done)
+    if [ ! -f /app/data/.db_initialized ]; then
+        echo "🗄️  Initializing Database..."
+        python -m rag_bot.db_init
+        touch /app/data/.db_initialized
+        echo "✅ Database initialized"
+    else
+        echo "✅ Database already initialized, skipping..."
+    fi
+
+    echo "🚀 Starting API..."
+    exec uvicorn rag_bot.api:app --host 0.0.0.0 --port 8000 --workers 1
+'
