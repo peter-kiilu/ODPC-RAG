@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  odpc-rag:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: odpc-rag
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "8000:8000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - PYTHONPATH=/app
+    volumes:
+      - ./rag_bot/chroma_db:/app/rag_bot/chroma_db
+      - ./data:/app/data:ro
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

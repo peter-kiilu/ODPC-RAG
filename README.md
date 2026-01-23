@@ -67,6 +67,7 @@ python -m rag_bot.main chat
 ```
 
 Available commands:
+
 - Type your question to get answers
 - `clear` - Reset conversation history
 - `quit` or `exit` - Close the chat
@@ -80,11 +81,13 @@ uvicorn rag_bot.api:app --reload --host 0.0.0.0 --port 8000
 ```
 
 **API Endpoints:**
+
 - `GET /health` - Check system status
 - `POST /chat` - Send message and get response
 - `POST /clear` - Clear conversation history
 
 **Example API request:**
+
 ```bash
 curl -X POST "http://localhost:8000/chat" \
   -H "Content-Type: application/json" \
@@ -120,21 +123,85 @@ ODPC-RAG/
 ├── requirements.txt      # Python dependencies
 ```
 
+## Docker Deployment
+
+Run the entire application using Docker Compose:
+
+### Prerequisites
+
+- Docker Engine 20.10+
+- Docker Compose 2.0+
+
+### Quick Start
+
+```bash
+# 1. Copy environment template and add your API keys
+cp .env.example .env
+# Edit .env and add your GROQ_API_KEY
+
+# 2. Build and start containers
+docker-compose up -d --build
+
+# 3. Check status
+docker-compose ps
+
+# 4. View logs
+docker-compose logs -f
+```
+
+### Access Points
+
+| Service      | URL                          | Description    |
+| ------------ | ---------------------------- | -------------- |
+| Frontend     | http://localhost:3000        | Chat interface |
+| Backend API  | http://localhost:8000        | REST API       |
+| Health Check | http://localhost:8000/health | System status  |
+
+### Docker Commands
+
+```bash
+# Stop containers
+docker-compose down
+
+# Rebuild after code changes
+docker-compose up -d --build
+
+# View backend logs only
+docker-compose logs -f backend
+
+# Enter backend container
+docker-compose exec backend bash
+
+# Remove all containers and images
+docker-compose down --rmi all -v
+```
+
+### Data Persistence
+
+- **Vector Database**: Persisted in `./rag_bot/chroma_db`
+- **Documents**: Mounted read-only from `./data`
+
+---
+
 ## Troubleshooting
 
 **Module not found errors:**
+
 - Ensure virtualenv is activated
 - Run commands from project root
 
 **Crawler issues:**
+
 - Check network connectivity
 - Delete `crawler_state.json` for fresh start
 
 **Indexing failures:**
+
 - Verify API keys in `.env`
 - Check internet connectivity
 
 **CORS errors (API):**
+
 - Update `origins` list in `rag_bot/api.py`
 - For Cloud Workstations, add `credentials: 'include'` in frontend fetch requests
 

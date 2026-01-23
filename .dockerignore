@@ -1,0 +1,79 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+npm-debug.log*
+frontend/node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment (handled via docker-compose)
+.env
+.env.local
+rag_bot/.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+data/logs/
+
+# Old Docker files
+Dockerfile.backend
+Dockerfile.frontend
+nginx.conf
+
+# Documentation
+*.md
+!README.md
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Temp
+tmp/
+temp/
+
+# Database files (should use volumes, not copy into image)
+rag_bot/chroma_db/
+chroma_db/
+
+# Runtime state
+crawler_state.json
+
+# Agent workflows
+.agent/
+.gemini/
+node_modules
+*.log
+__pycache__
+.git
+Dockerfile*
+docker-compose*.yml
