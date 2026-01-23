@@ -22,14 +22,16 @@ chromadb==1.4.1
 sentence-transformers==5.2.0
 transformers==4.46.3
 
-# PyTorch - CPU only (no +cpu suffix needed for standard install)
+# PyTorch - CPU only 
+# Note: This strictly installs the version. 
+# The "+cpu" variant is selected via the --extra-index-url flag in the install command.
 torch==2.10.0
 
 # Text Processing
 llama-index-readers-web==0.5.6
 beautifulsoup4==4.12.3
 lxml==5.4.0
-markdownify==0.14.1
+markdownify>=1.2.2  # UPDATED: Fixed conflict with llama-index-readers-web
 html2text==2024.2.26
 python-dotenv==1.0.1
 
