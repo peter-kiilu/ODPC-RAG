@@ -2,7 +2,6 @@
 
 import logging
 from typing import List, Dict, Any
-import torch
 from groq import Groq
 from .vector_store import VectorStore
 from .config import config
@@ -22,7 +21,6 @@ class Retriever:
         self.vector_store = vector_store or VectorStore()
         self.client = Groq(api_key=config.GROQ_API_KEY)
         self.model = "llama-3.1-8b-instant"
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def _transform_query(self, original_query: str) -> str:
         """
@@ -73,11 +71,12 @@ class Retriever:
         """
         top_k = top_k or config.TOP_K
 
-        opt_query = self._transform_query(query)
+        # Optionally transform query
+        # opt_query = self._transform_query(query)
         
-        results = self.vector_store.search(opt_query, top_k=top_k)
+        results = self.vector_store.search(query, top_k=top_k)
         
-        # Filter by minimum relevance score if needed
+        # Filter by minimum relevance score
         filtered = [r for r in results if r.get("score", 0) > 0.25]
         
         logger.info(f"Retrieved {len(filtered)} relevant chunks for: {query[:50]}...")

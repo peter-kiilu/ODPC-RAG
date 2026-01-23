@@ -1,9 +1,14 @@
 """Document loader for markdown and PDF files."""
 
 import logging
+import os
+import gc
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
+from functools import lru_cache
+from concurrent.futures import ThreadPoolExecutor
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -35,99 +40,74 @@ class DocumentLoader:
         """
         self.data_dir = Path(data_dir)
         self.downloads_dir = Path(downloads_dir) if downloads_dir else None
+        # Reference pattern: Define supported extensions clearly
+        self.SUPPORTED_EXTENSIONS = {'.md', '.pdf'}
+
+    @lru_cache(maxsize=100)
+    def _read_file_content(self, file_path: Path) -> Optional[str]:
+        """LRU Cached file reader to prevent redundant disk I/O."""
+        ext = file_path.suffix.lower()
+        try:
+            if ext == '.md':
+                return file_path.read_text(encoding="utf-8", errors='ignore')
+            elif ext == '.pdf':
+                import fitz
+                with fitz.open(file_path) as doc:
+                    return "\n".join([page.get_text() for page in doc])
+        except Exception as e:
+            logger.error(f"Failed to read {file_path}: {e}")
+        return None
+
+    def _process_single_file(self, file_path: Path) -> Optional[Document]:
+        """Worker function for the ThreadPoolExecutor."""
+        content = self._read_file_content(file_path)
+        if not content or not content.strip():
+            return None
+
+        if file_path.suffix.lower() == '.md':
+            title = self._extract_title(content, file_path.stem)
+            source = self._extract_source_url(content, file_path.name)
+        else:
+            title = file_path.stem.replace("-", " ").replace("_", " ")
+            source = file_path.name
+
+        return Document(
+            content=content,
+            metadata={
+                "source": source,
+                "title": title,
+                "file_path": str(file_path),
+                "file_type": file_path.suffix.lower()[1:],
+                "last_modified": os.path.getmtime(file_path)
+            }
+        )
         
     def load_all(self) -> List[Document]:
-        """Load all documents from configured directories.
-        
-        Returns:
-            List of Document objects.
-        """
-        documents = []
-        
-        # Load markdown files
-        documents.extend(self._load_markdown_files())
-        
-        # Load PDF files
+        """Parallel loading with batch management and GC."""
+        all_files = list(self.data_dir.glob("*.md"))
         if self.downloads_dir and self.downloads_dir.exists():
-            documents.extend(self._load_pdf_files())
-        
-        logger.info(f"Loaded {len(documents)} documents total")
-        return documents
-    
-    def _load_markdown_files(self) -> List[Document]:
-        """Load all markdown files from data directory."""
+            all_files.extend(self.downloads_dir.glob("*.pdf"))
+
         documents = []
-        
-        if not self.data_dir.exists():
-            logger.warning(f"Data directory not found: {self.data_dir}")
-            return documents
-        
-        for md_file in self.data_dir.glob("*.md"):
-            try:
-                content = md_file.read_text(encoding="utf-8")
+        # Reference pattern: Parallel processing using ThreadPoolExecutor
+        BATCH_SIZE = 5 
+        logger.info(f"Loading {len(all_files)} files in batches of {BATCH_SIZE}...")
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            for i in range(0, len(all_files), BATCH_SIZE):
+                batch = all_files[i:i + BATCH_SIZE]
+                # Process batch in parallel
+                results = list(executor.map(self._process_single_file, batch))
                 
-                # Extract title from first heading or filename
-                title = self._extract_title(content, md_file.stem)
+                # Filter out None values and add to list
+                documents.extend([doc for doc in results if doc])
                 
-                # Extract source URL from metadata if present
-                source_url = self._extract_source_url(content, md_file.name)
-                
-                doc = Document(
-                    content=content,
-                    metadata={
-                        "source": source_url,
-                        "title": title,
-                        "file_path": str(md_file),
-                        "file_type": "markdown"
-                    }
-                )
-                documents.append(doc)
-                
-            except Exception as e:
-                logger.error(f"Error loading {md_file}: {e}")
-        
-        logger.info(f"Loaded {len(documents)} markdown files")
+                # Reference pattern: Explicit Garbage Collection
+                gc.collect() 
+                logger.info(f"Processed batch {i//BATCH_SIZE + 1}")
+
         return documents
-    
-    def _load_pdf_files(self) -> List[Document]:
-        """Load all PDF files from downloads directory."""
-        documents = []
-        
-        try:
-            import fitz  # PyMuPDF
-        except ImportError:
-            logger.warning("PyMuPDF not installed. Skipping PDF files.")
-            return documents
-        
-        for pdf_file in self.downloads_dir.glob("*.pdf"):
-            try:
-                doc = fitz.open(pdf_file)
-                text_parts = []
-                
-                for page in doc:
-                    text_parts.append(page.get_text())
-                
-                content = "\n".join(text_parts)
-                doc.close()
-                
-                if content.strip():
-                    document = Document(
-                        content=content,
-                        metadata={
-                            "source": pdf_file.name,
-                            "title": pdf_file.stem.replace("-", " ").replace("_", " "),
-                            "file_path": str(pdf_file),
-                            "file_type": "pdf"
-                        }
-                    )
-                    documents.append(document)
-                    
-            except Exception as e:
-                logger.error(f"Error loading PDF {pdf_file}: {e}")
-        
-        logger.info(f"Loaded {len(documents)} PDF files")
-        return documents
-    
+
     def _extract_title(self, content: str, fallback: str) -> str:
         """Extract title from markdown content."""
         for line in content.split("\n"):
