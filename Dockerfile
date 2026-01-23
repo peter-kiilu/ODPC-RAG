@@ -57,7 +57,6 @@ RUN chmod +x entrypoint.sh && \
     mkdir -p /app/data/markdown /app/data/documents /app/rag_bot/chroma_db && \
     chown -R appuser:appuser /app
 
-USER appuser
 
 EXPOSE 8000
 
