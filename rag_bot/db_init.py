@@ -1,6 +1,6 @@
 """
 Database initialization script for the bot
-Creates the nescessary PostgreSQL database and tables
+Creates the necessary PostgreSQL database and tables
 """
 
 import os
@@ -22,32 +22,37 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Database configuration
-# Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@postgres:5445/chatdb")
+# Database configuration - FIXED: Match docker-compose defaults
 POSTGRES_USER = os.getenv("POSTGRES_USER", "user")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "password")
-POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5445")
-POSTGRES_DB = os.getenv("POSTGRES_DB", "chatdb")
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "postgres")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")  # FIXED: Was 5445
+POSTGRES_DB = os.getenv("POSTGRES_DB", "odpc_chatdb")  # FIXED: Was chatdb
 
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+)
 
 # Admin database URL (for creating the main database if it doesn't exist)
 ADMIN_DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/postgres"
+
 
 def create_db_if_not_exists():
     """
     Creates the main database if it does not exist
     """
     try:
+        logger.info(f"Connecting to admin database at {POSTGRES_HOST}:{POSTGRES_PORT}")
+        logger.info(f"Using user: {POSTGRES_USER}")
+        
         # connect to the postgres admin database
         admin_engine = create_engine(
             ADMIN_DATABASE_URL,
-            isolation_level="AUTOCOMMIT"  # Set at engine level
+            isolation_level="AUTOCOMMIT"
         )
 
         with admin_engine.connect() as conn:
-
             # Check if database exists
             result = conn.execute(
                 text("SELECT 1 FROM pg_database WHERE datname = :dbname"),
@@ -68,10 +73,59 @@ def create_db_if_not_exists():
     except Exception as e:
         logger.error(f"Unexpected error creating database: {e}")
         sys.exit(1)
-    
+
+
+def create_tables():
+    """
+    Creates the necessary tables in the database
+    """
+    try:
+        logger.info(f"Connecting to database '{POSTGRES_DB}' to create tables...")
+        engine = create_engine(DATABASE_URL)
+        
+        with engine.connect() as conn:
+            # Create chat_messages table
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS chat_messages (
+                    message_id SERIAL PRIMARY KEY,
+                    session_id UUID NOT NULL,
+                    user_message TEXT NOT NULL,
+                    bot_response TEXT,
+                    role VARCHAR(50) NOT NULL,
+                    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    metadata JSONB
+                )
+            """))
+            
+            # Create indexes for better query performance
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_session_id 
+                ON chat_messages(session_id)
+            """))
+            
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_timestamp 
+                ON chat_messages(timestamp DESC)
+            """))
+            
+            conn.commit()
+            logger.info("Tables created successfully")
+            
+        engine.dispose()
+        
+    except SQLAlchemyError as e:
+        logger.error(f"Error creating tables: {e}")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Unexpected error creating tables: {e}")
+        sys.exit(1)
+
+
 async def test_database_connection():
     """Test the database connection using asyncpg"""
     try:
+        logger.info(f"Testing connection to {POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}")
+        
         conn = await asyncpg.connect(
             host=POSTGRES_HOST,
             port=int(POSTGRES_PORT),
@@ -119,17 +173,19 @@ async def test_database_connection():
         logger.error(f"Database connection test failed: {e}")
         sys.exit(1)
 
+
 def main():
     """Main initialization function"""
     logger.info("Starting database initialization...")
+    logger.info(f"Configuration: {POSTGRES_USER}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}")
     
     # Step 1: Create database if it doesn't exist
     logger.info("Step 1: Creating database if needed...")
     create_db_if_not_exists()
     
     # Step 2: Create tables
-    logger.info("Step 2: Creating tables...")
-    create_tables()
+    # logger.info("Step 2: Creating tables...")
+    # create_tables()
     
     # Step 3: Test connection
     logger.info("Step 3: Testing database connection...")
@@ -141,7 +197,7 @@ def main():
     print("\n" + "="*50)
     print("DATABASE SETUP COMPLETE")
     print("="*50)
-    print(f"Database URL: {DATABASE_URL}")
+    print(f"Database URL: {DATABASE_URL.replace(POSTGRES_PASSWORD, '***')}")
     print(f"Host: {POSTGRES_HOST}:{POSTGRES_PORT}")
     print(f"Database: {POSTGRES_DB}")
     print(f"User: {POSTGRES_USER}")
@@ -150,6 +206,6 @@ def main():
     print("\nThe API is now ready to use with PostgreSQL!")
     print("="*50)
 
+
 if __name__ == "__main__":
     main()
-
