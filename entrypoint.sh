@@ -22,6 +22,16 @@ exec gosu appuser bash -c '
         SHOULD_SKIP=true
     fi
 
+    # Pre-download HuggingFace model on first run (if not in volume cache)
+    if [ ! -f /app/.cache/huggingface/.model_downloaded ]; then
+        echo "📥 Downloading embedding model (first time only, ~133MB)..."
+        python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer(\"BAAI/bge-small-en-v1.5\")" || echo "⚠️  Model download will happen during API startup"
+        touch /app/.cache/huggingface/.model_downloaded 2>/dev/null || true
+        echo "✅ Model cached for future runs"
+    else
+        echo "✅ Using cached embedding model"
+    fi
+
     if [ "$SHOULD_SKIP" = "false" ]; then
         echo "📥 Starting Crawler..."
         python -m crawler.crawler || echo "⚠️  Crawler failed, continuing..."
