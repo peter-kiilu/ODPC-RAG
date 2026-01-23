@@ -34,7 +34,7 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:-odpc_chatdb}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-odpc_chatdb}
+      DATABASE_URL: ${DATABASE_URL}
       HF_HOME: /app/data/.cache/huggingface
       SKIP_CRAWL: "0" # set to 1 if you want to skip crawling/indexing
     volumes:
