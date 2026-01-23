@@ -1,62 +1,63 @@
 # Core API Framework
-fastapi==0.115.12
-uvicorn[standard]==0.34.0
-pydantic==2.10.6
-pydantic-settings==2.7.1
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+pydantic>=2.12.0
+pydantic-settings>=2.7.0
 
 # Database
-sqlalchemy==2.0.36
-psycopg2-binary==2.9.10
-asyncpg==0.30.0
-alembic==1.14.0
+sqlalchemy>=2.0.36
+psycopg2-binary>=2.9.10
+asyncpg>=0.30.0
+alembic>=1.14.0
 
 # LLM & AI
-groq==0.15.0
+groq>=0.15.0
 
 # Embeddings & Vector Store
-llama-index-core==0.14.13
-llama-index-llms-groq==0.4.1
-llama-index-embeddings-huggingface==0.6.1
-llama-index-vector-stores-chroma==0.5.5
-chromadb==1.4.1
-sentence-transformers==5.2.0
-transformers==4.46.3
+llama-index-core>=0.12.0
+llama-index-llms-groq>=0.4.0
+llama-index-embeddings-huggingface>=0.6.0
+llama-index-vector-stores-chroma>=0.5.0
+chromadb>=0.4.0
+sentence-transformers>=3.0.0
+transformers>=4.46.0
 
-# PyTorch - CPU only 
-# Note: This strictly installs the version. 
-# The "+cpu" variant is selected via the --extra-index-url flag in the install command.
-torch==2.10.0
+# PyTorch - CPU 
+# (Strictly keeping 2.5.1 as it is the current stable release)
+torch==2.5.1
 
 # Text Processing
-llama-index-readers-web==0.5.6
-beautifulsoup4==4.12.3
-lxml==5.4.0
-markdownify>=1.2.2  # UPDATED: Fixed conflict with llama-index-readers-web
-html2text==2024.2.26
-python-dotenv==1.0.1
+llama-index-readers-web>=0.5.0
+beautifulsoup4>=4.12.0
+lxml>=5.4.0
+markdownify>=1.2.0
+html2text>=2024.2.0
+python-dotenv>=1.0.0
 
 # HTTP & Networking
-httpx==0.28.1
-requests==2.32.3
-aiohttp==3.11.11
+httpx>=0.28.0
+requests>=2.32.0
+aiohttp>=3.11.0
 
-# Utilities
-tenacity==9.0.0
-tqdm==4.67.1
-tiktoken==0.8.0
-deprecated==1.2.15
-wrapt==1.17.2
-typing-extensions==4.12.2
-python-multipart==0.0.20
+# Utilities - UNPINNED TO PREVENT CONFLICTS
+# Let pip decide what version of these is needed by Pydantic/FastAPI
+tenacity
+tqdm
+tiktoken
+deprecated
+wrapt
+typing-extensions
+python-multipart
 
 # Date & Time
-python-dateutil==2.9.0.post0
+python-dateutil
 
 # Data Processing
-numpy==2.2.3
+# (Strictly pinned <2.0 because ML libraries crash with Numpy 2.x)
+numpy<2.0.0
 
 # YAML & Config
-pyyaml==6.0.2
+pyyaml
 
 # Logging
-loguru==0.7.3
+loguru
