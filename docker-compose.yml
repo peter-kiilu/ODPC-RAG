@@ -6,13 +6,13 @@ services:
     container_name: odpc-postgres
     restart: always
     environment:
-      - POSTGRES_USER=${POSTGRES_USER:-user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
-      - POSTGRES_DB=${POSTGRES_DB:-odpc_chatdb}
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-odpc_chatdb}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d odpc_chatdb"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-odpc_chatdb}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,15 +29,15 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - PYTHONPATH=/app
-      - POSTGRES_USER=${POSTGRES_USER:-user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=${POSTGRES_DB:-odpc_chatdb}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-odpc_chatdb}
-      - HF_HOME=/app/data/.cache/huggingface
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      PYTHONPATH: /app
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-odpc_chatdb}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-odpc_chatdb}
+      HF_HOME: /app/data/.cache/huggingface
     volumes:
       - ./rag_bot/chroma_db:/app/rag_bot/chroma_db
       - ./data:/app/data
@@ -59,7 +59,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 600s
+      start_period: 60s
 
 volumes:
   postgres_data:
