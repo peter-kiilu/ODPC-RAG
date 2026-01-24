@@ -15,7 +15,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     libffi-dev \
-    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment
@@ -42,10 +41,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Non-root user
-RUN groupadd --gid 1000 appuser \
-    && useradd --uid 1000 --gid 1000 -m appuser
-
 # Runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
@@ -53,17 +48,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gosu \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy virtual environment from builder
-COPY --from=backend-builder --chown=appuser:appuser /app/venv /app/venv
+# Non-root user
+RUN groupadd --gid 1000 appuser \
+    && useradd --uid 1000 --gid 1000 -m appuser
+
+# Copy virtual environment (will be owned by root initially)
+COPY --from=backend-builder /app/venv /app/venv
 
 # Copy project files
-COPY --chown=appuser:appuser rag_bot/ ./rag_bot/
-COPY --chown=appuser:appuser crawler/ ./crawler/
-COPY --chown=appuser:appuser entrypoint.sh ./
+COPY rag_bot/ ./rag_bot/
+COPY crawler/ ./crawler/
+COPY entrypoint.sh ./
 
-# Permissions & directories
+# Create directories and fix ALL permissions in ONE layer
+# This is the key: doing it all at once is much faster than multiple chown operations
 RUN chmod +x entrypoint.sh && \
-    mkdir -p /app/data/markdown /app/data/documents /app/rag_bot/chroma_db && \
+    mkdir -p /app/data/markdown /app/data/documents /app/rag_bot/chroma_db /app/.cache/huggingface && \
     chown -R appuser:appuser /app
 
 EXPOSE 8000

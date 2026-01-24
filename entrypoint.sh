@@ -5,12 +5,27 @@ echo "======================================"
 echo "ODPC Kenya RAG Bot - Starting..."
 echo "======================================"
 
-# Ensure directories exist (host-mounted volumes)
+# Ensure directories exist (for volume mounts)
 mkdir -p /app/data/markdown /app/data/documents /app/rag_bot/chroma_db /app/.cache/huggingface
 
-# Fix ownership to appuser
-chown -R appuser:appuser /app/data /app/rag_bot/chroma_db /app/.cache /app/venv 2>/dev/null || true
-chmod -R 755 /app/data /app/rag_bot/chroma_db /app/.cache /app/venv 2>/dev/null || true
+# Fix ownership for volume-mounted directories ONLY
+# Use conditional chown: only change if not already owned by appuser
+# This makes restarts much faster
+echo "Fixing volume permissions..."
+for dir in /app/data /app/rag_bot/chroma_db /app/.cache; do
+    if [ -d "$dir" ]; then
+        # Only chown if the directory is NOT already owned by appuser
+        if [ "$(stat -c '%U' "$dir" 2>/dev/null)" != "appuser" ]; then
+            chown -R appuser:appuser "$dir" 2>/dev/null || true
+        fi
+        chmod -R 755 "$dir" 2>/dev/null || true
+    fi
+done
+
+# Also ensure venv is accessible (in case it wasn't properly copied)
+if [ -d "/app/venv" ] && [ "$(stat -c '%U' /app/venv 2>/dev/null)" != "appuser" ]; then
+    chown -R appuser:appuser /app/venv 2>/dev/null || true
+fi
 
 echo "Switching to non-root user..."
 
