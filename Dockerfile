@@ -17,17 +17,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Create virtual environment AS appuser from the start
-RUN groupadd --gid 1000 appuser && \
-    useradd --uid 1000 --gid 1000 -m appuser
-
-# Create venv with correct ownership from the beginning
-USER appuser
+# Create virtual environment (as root - we'll fix ownership later)
 RUN python -m venv /app/venv
 ENV PATH="/app/venv/bin:$PATH"
-
-# Switch back to root for pip install
-USER root
 
 # Install PyTorch CPU-only
 RUN --mount=type=cache,target=/root/.cache/pip \
@@ -37,9 +29,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
-
-# Fix venv ownership (much smaller than entire /app)
-RUN chown -R appuser:appuser /app/venv
 
 # -------------------------
 # Stage 2: Final Image
@@ -63,15 +52,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd --gid 1000 appuser \
     && useradd --uid 1000 --gid 1000 -m appuser
 
-# Copy virtual environment (already owned by appuser from builder stage)
+# Copy files with --chown for proper ownership from the start
 COPY --from=backend-builder --chown=appuser:appuser /app/venv /app/venv
-
-# Copy project files with correct ownership
 COPY --chown=appuser:appuser rag_bot/ ./rag_bot/
 COPY --chown=appuser:appuser crawler/ ./crawler/
 COPY --chown=appuser:appuser entrypoint.sh ./
 
-# Only create directories and chmod entrypoint (no recursive chown needed!)
+# Create directories and set permissions (only for empty dirs)
 RUN chmod +x entrypoint.sh && \
     mkdir -p /app/data/markdown /app/data/documents /app/rag_bot/chroma_db /app/.cache/huggingface && \
     chown -R appuser:appuser /app/data /app/rag_bot/chroma_db /app/.cache
