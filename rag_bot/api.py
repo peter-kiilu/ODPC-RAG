@@ -68,9 +68,7 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Startup error: {e}")
 
-# Initialize the Bot globally so it doesn't reload on every message
-# This keeps the vector store and memory in place
-bot = ChatBot()
+
 
 # Data Models
 class ChatRequest(BaseModel):
@@ -157,6 +155,10 @@ async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
         if not request.session_id:
             request.session_id = str(uuid.uuid4())
             logger.info(f"Generated new session ID: {request.session_id}")
+
+        # Initialize the Bot globally so it doesn't reload on every message
+        # This keeps the vector store and memory in place
+        bot = ChatBot()
 
         # STEP 1: Load database history into bot's memory for this session
         past_messages = get_session_history(db, request.session_id, limit=10)
