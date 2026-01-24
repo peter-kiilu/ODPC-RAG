@@ -1,119 +1,131 @@
+# ODPC Kenya RAG Bot
+
+An intelligent AI chatbot for the [Office of the Data Protection Commissioner (ODPC) Kenya](https://www.odpc.go.ke/), powered by Retrieval-Augmented Generation (RAG). It crawls the official website, indexes the content, and provides accurate, sourced answers to user queries about data protection laws and regulations in Kenya.
+
+## Features
+
+- **Automated Crawler**: Scrapes ODPC website content and converts it to clean Markdown.
+- **RAG Engine**: Uses `llama-index` and `chromadb` for semantic search and retrieval.
+- **Persistent Memory**: Stores chat history and session context in a **PostgreSQL** database.
+- **Session Management**: Supports multiple concurrent user sessions with independent history.
+- **Source Citations**: Every answer includes links to the source documents used.
+- **API First**: Fast, async API built with **FastAPI**.
+- **Dockerized**: Fully containerized for easy deployment.
+
+## Tech Stack
+
+- **LLM**: Llama 3 (via Groq API)
+- **Embeddings**: BAAI/bge-small-en-v1.5 (HuggingFace)
+- **Vector Store**: ChromaDB
+- **Database**: PostgreSQL (Chat History)
+- **Backend**: Python 3.11, FastAPI, SQLAlchemy
+- **Infrastructure**: Docker & Docker Compose
+
 ---
 
-# ODPC-RAG
+## Quick Start
 
-A Retrieval-Augmented Generation (RAG) chatbot for the Office of the Data Protection Commissioner (ODPC) Kenya.
-
----
-
-## Requirements
-
-* Docker
-* Docker Compose
-* Groq API Key
-
----
-
-## Quick Start (Recommended)
-
-### 1. Clone
+### 1. Clone Repository
 
 ```bash
 git clone https://github.com/peter-kiilu/ODPC-RAG.git
 cd ODPC-RAG
 ```
 
----
+### 2. Configure Environment
 
-### 2. Configure env
-
-Create `.env` in the project root:
+Create a `.env` file in the root directory:
 
 ```env
-GROQ_API_KEY=your_groq_api_key_here
+# AI Provider
+GROQ_API_KEY=gsk_your_groq_api_key_here
 
-# Database Configuration
+# Database (Default settings work out of the box with Docker)
 POSTGRES_USER=user
-POSTGRES_PASSWORD=userpassword
-POSTGRES_DB=db_name
-DATABASE_URL=postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}
+POSTGRES_PASSWORD=password
+POSTGRES_DB=odpc_chatdb
+
+# Optional: Skip crawling on restart (true/false)
+SKIP_CRAWL=false
 ```
 
----
+### 3. Run with Docker
 
-### 3. Build image
+This command builds the image, starts the database, crawls the website (if not skipped), indexes documents, and launches the API.
 
 ```bash
-docker compose build
+docker compose up --build -d
 ```
+
+### 4. Verify Deployment
+
+- **Health Check**: [http://localhost:8000/health](http://localhost:8000/health)
+- **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-### 4. Crawl + index data (run once or when updating)
+## API Usage Examples
+
+### Chat with the Bot
+
+**POST** `/chat`
+
+```json
+{
+  "message": "What are the rights of a data subject?",
+  "session_id": "optional-uuid-here" 
+}
+```
+
+### Get Chat History
+
+**GET** `/chat/history/{session_id}`
+
+### Clear Session History
+
+**DELETE** `/chat/history/{session_id}`
+
+---
+
+## Development & Troubleshooting
+
+### Re-crawl and Re-index Data
+
+If you need to update the knowledge base with the latest data from the website:
 
 ```bash
-docker compose run --rm odpc-rag
+# Set SKIP_CRAWL=false in .env or pass it inline
+SKIP_CRAWL=false docker compose up --build -d
 ```
 
----
-
-### 5. Start the API
+### View Logs
 
 ```bash
-docker compose up -d
+docker compose logs -f odpc-rag
 ```
 
----
+### Database Reset
 
-## Access
-
-* API: [http://localhost:8000](http://localhost:8000)
-* Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
-* Health: [http://localhost:8000/health](http://localhost:8000/health)
-
----
-
-## Update Data
-
-Re-crawl and re-index:
+To completely wipe the database and vector store (start fresh):
 
 ```bash
-docker compose run --rm odpc-rag
+docker compose down -v
+docker compose up --build -d
 ```
 
----
-
-## Useful Commands
-
-```bash
-docker ps                 # list containers
-docker logs -f odpc-rag   # view logs
-docker compose down       # stop
-docker compose down -v    # stop + delete data
-```
-
----
-
-## Project Structure
+### Project Structure
 
 ```
 ODPC-RAG/
-├── crawler/
-├── rag_bot/
-│   └── chroma_db/
-├── data/
-├── docker-compose.yml
-├── Dockerfile
-└── requirements.txt
+├── crawler/            # Web crawler logic (BeautifulSoup + Requests)
+├── rag_bot/            # Core RAG application
+│   ├── api.py          # FastAPI endpoints
+│   ├── chat.py         # RAG logic & prompt engineering
+│   ├── database.py     # PostgreSQL connection & models
+│   └── vector_store.py # ChromaDB management
+├── data/               # Local storage for scraped MD files (volume mounted)
+├── docker-compose.yml  # Service orchestration
+├── Dockerfile          # Multi-stage build (optimized for size)
+└── requirements.txt    # Python dependencies
 ```
-
----
-
-## Notes
-
-* Docker is the default
-* Data persists in volumes
-* Rebuild image only if code changes
-
----
 
