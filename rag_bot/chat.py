@@ -20,6 +20,30 @@ class ChatBot:
         self.retriever = Retriever()
         self.conversation_history: List[Dict[str, str]] = []
         self.model = config.LLM_MODEL
+    
+    def load_history_from_db(self, db_messages):
+        """Load conversation history from database messages into memory.
+        
+        Args:
+            db_messages: List of ChatMessage objects from database
+        """
+        # Clear existing history first
+        self.conversation_history = []
+        
+        # Convert database messages to chat format
+        for msg in db_messages:
+            if msg.role == "user" and msg.user_message:
+                self.conversation_history.append({
+                    "role": "user",
+                    "content": msg.user_message
+                })
+            elif msg.role == "assistant" and msg.response:
+                self.conversation_history.append({
+                    "role": "assistant", 
+                    "content": msg.response
+                })
+        
+        logger.info(f"Loaded {len(self.conversation_history)} messages into memory")
         
     def chat(self, user_message: str) -> Dict[str, any]:
         """Process a user message and generate a response.
@@ -43,6 +67,7 @@ class ChatBot:
         ]
         
         # Add conversation history (last 4 exchanges = 8 messages)
+        # This now works because load_history_from_db() populates it!
         for msg in self.conversation_history[-8:]:
             messages.append(msg)
         
