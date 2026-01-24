@@ -6,11 +6,11 @@ echo "ODPC Kenya RAG Bot - Starting..."
 echo "======================================"
 
 # Ensure directories exist (host-mounted volumes)
-mkdir -p /app/data/markdown /app/data/documents /app/rag_bot/chroma_db
+mkdir -p /app/data/markdown /app/data/documents /app/rag_bot/chroma_db /app/.cache/huggingface
 
 # Fix ownership to appuser
-chown -R appuser:appuser /app/data /app/rag_bot/chroma_db 2>/dev/null || true
-chmod -R 755 /app/data /app/rag_bot/chroma_db 2>/dev/null || true
+chown -R appuser:appuser /app/data /app/rag_bot/chroma_db /app/.cache /app/venv 2>/dev/null || true
+chmod -R 755 /app/data /app/rag_bot/chroma_db /app/.cache /app/venv 2>/dev/null || true
 
 echo "Switching to non-root user..."
 

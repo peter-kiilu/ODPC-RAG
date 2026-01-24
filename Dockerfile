@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Build tools - kept minimal
+# Build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
@@ -18,15 +18,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gosu \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PyTorch CPU-only first to avoid downloading the massive CUDA version
-# This significantly speeds up builds and reduces image size
+# Create virtual environment
+RUN python -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
+
+# Install PyTorch CPU-only
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install torch --index-url https://download.pytorch.org/whl/cpu
 
-# Install remaining Python dependencies
+# Install dependencies
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --user -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+    pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 
 # -------------------------
 # Stage 2: Final Image
@@ -35,7 +38,7 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH="/home/appuser/.local/bin:$PATH"
+    PATH="/app/venv/bin:$PATH"
 
 WORKDIR /app
 
@@ -50,10 +53,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gosu \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Python packages from builder
-COPY --from=backend-builder /root/.local /home/appuser/.local
+# Copy virtual environment from builder
+COPY --from=backend-builder --chown=appuser:appuser /app/venv /app/venv
 
-# Copy project
+# Copy project files
 COPY --chown=appuser:appuser rag_bot/ ./rag_bot/
 COPY --chown=appuser:appuser crawler/ ./crawler/
 COPY --chown=appuser:appuser entrypoint.sh ./
@@ -65,9 +68,7 @@ RUN chmod +x entrypoint.sh && \
 
 EXPOSE 8000
 
-# Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Entrypoint
 CMD ["./entrypoint.sh"]
