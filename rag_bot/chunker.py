@@ -24,8 +24,9 @@ class TextChunker:
     
     def __init__(
         self,
-        chunk_size: int = 512,
-        chunk_overlap: int = 100
+        chunk_size: int = 500,
+        chunk_overlap: int = 100,
+        min_chunk_size: int = 50
     ):
         """Initialize the chunker with token-based limits."""
         self.chunk_size = chunk_size
