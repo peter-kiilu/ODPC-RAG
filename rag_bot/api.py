@@ -158,14 +158,21 @@ async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
             request.session_id = str(uuid.uuid4())
             logger.info(f"Generated new session ID: {request.session_id}")
 
-        # Load database history into bot's memory for this session
+        # STEP 1: Load database history into bot's memory for this session
         past_messages = get_session_history(db, request.session_id, limit=10)
         if past_messages:
             # Load the database history into the bot
             bot.load_history_from_db(past_messages)
             logger.info(f"Loaded {len(past_messages)} past messages for session {request.session_id}")
+        else:
+            # CRITICAL: Clear history for new sessions to prevent leakage
+            bot.clear_history()
+            logger.info(f"New session started: {request.session_id}")
         
-        # Save user message to database
+        # STEP 2: Get bot response (will use loaded history as context)
+        result = bot.chat(request.message)
+
+        # STEP 3: Save user message to database (AFTER getting response)
         user_message_id = add_message_to_history(
             db=db,
             session_id=request.session_id,
@@ -173,10 +180,7 @@ async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
             user_message=request.message
         )
 
-        # Get bot response (will use loaded history as context)
-        result = bot.chat(request.message)
-
-        # Save assistant response to database
+        # STEP 4: Save assistant response to database
         assistant_message_id = add_message_to_history(
             db=db,
             session_id=request.session_id,
@@ -201,8 +205,8 @@ async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         logger.error(f"Chat error: {e}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")  
-
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        
 @app.post("/clear")
 async def clear_chat(db: Session = Depends(get_db)):
     """Clear conversation history for the bot (in-memory only)"""

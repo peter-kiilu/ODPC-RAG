@@ -17,9 +17,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Create virtual environment
+# Create virtual environment AS appuser from the start
+RUN groupadd --gid 1000 appuser && \
+    useradd --uid 1000 --gid 1000 -m appuser
+
+# Create venv with correct ownership from the beginning
+USER appuser
 RUN python -m venv /app/venv
 ENV PATH="/app/venv/bin:$PATH"
+
+# Switch back to root for pip install
+USER root
 
 # Install PyTorch CPU-only
 RUN --mount=type=cache,target=/root/.cache/pip \
@@ -29,6 +37,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Fix venv ownership (much smaller than entire /app)
+RUN chown -R appuser:appuser /app/venv
 
 # -------------------------
 # Stage 2: Final Image
@@ -52,19 +63,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd --gid 1000 appuser \
     && useradd --uid 1000 --gid 1000 -m appuser
 
-# Copy virtual environment (will be owned by root initially)
-COPY --from=backend-builder /app/venv /app/venv
+# Copy virtual environment (already owned by appuser from builder stage)
+COPY --from=backend-builder --chown=appuser:appuser /app/venv /app/venv
 
-# Copy project files
-COPY rag_bot/ ./rag_bot/
-COPY crawler/ ./crawler/
-COPY entrypoint.sh ./
+# Copy project files with correct ownership
+COPY --chown=appuser:appuser rag_bot/ ./rag_bot/
+COPY --chown=appuser:appuser crawler/ ./crawler/
+COPY --chown=appuser:appuser entrypoint.sh ./
 
-# Create directories and fix ALL permissions in ONE layer
-# This is the key: doing it all at once is much faster than multiple chown operations
+# Only create directories and chmod entrypoint (no recursive chown needed!)
 RUN chmod +x entrypoint.sh && \
     mkdir -p /app/data/markdown /app/data/documents /app/rag_bot/chroma_db /app/.cache/huggingface && \
-    chown -R appuser:appuser /app
+    chown -R appuser:appuser /app/data /app/rag_bot/chroma_db /app/.cache
 
 EXPOSE 8000
 
