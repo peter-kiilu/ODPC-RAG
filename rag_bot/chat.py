@@ -54,9 +54,22 @@ class ChatBot:
         Returns:
             Dict with response, sources, and metadata.
         """
-        # Step 1: Retrieve relevant context from vector store
-        context = self.retriever.get_context(user_message)
-        sources = self.retriever.get_sources(user_message)
+        # CRITICAL FIX: Build context-aware query for RAG retrieval
+        # If user asks follow-up questions like "explain that", include recent context
+        rag_query = user_message
+        if len(self.conversation_history) >= 2:
+            # Get last Q&A pair for context
+            last_user = self.conversation_history[-2].get("content", "") if len(self.conversation_history) >= 2 else ""
+            last_assistant = self.conversation_history[-1].get("content", "") if len(self.conversation_history) >= 1 else ""
+            
+            # For short follow-up questions, include context
+            if len(user_message.split()) < 10:  # Short question likely a follow-up
+                rag_query = f"Previous question: {last_user[:150]} Current question: {user_message}"
+                logger.info(f"Enhanced RAG query with context for follow-up question")
+        
+        # Step 1: Retrieve relevant context from vector store using enhanced query
+        context = self.retriever.get_context(rag_query)
+        sources = self.retriever.get_sources(rag_query)
         
         # Step 2: Format the prompt with context
         qa_prompt = format_qa_prompt(context, user_message)
@@ -67,15 +80,14 @@ class ChatBot:
         ]
         
         # Add conversation history (last 4 exchanges = 8 messages)
-        # This now works because load_history_from_db() populates it!
         for msg in self.conversation_history[-8:]:
             messages.append(msg)
         
-        # Add current question with context
+        # Add current question with RAG context
         messages.append({"role": "user", "content": qa_prompt})
         
         try:
-            # Step 4: Call Groq API (single call)
+            # Step 4: Call Groq API
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
@@ -85,7 +97,7 @@ class ChatBot:
             
             assistant_message = response.choices[0].message.content
             
-            # Step 5: Update conversation history
+            # Step 5: Update conversation history with plain messages
             self.conversation_history.append({"role": "user", "content": user_message})
             self.conversation_history.append({"role": "assistant", "content": assistant_message})
             
