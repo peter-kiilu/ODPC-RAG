@@ -38,7 +38,7 @@ class Config:
     CHUNK_OVERLAP: int = int(os.getenv("CHUNK_OVERLAP", 100))
     
     # Retrieval settings
-    TOP_K: int = int(os.getenv("TOP_K", 5))
+    TOP_K: int = int(os.getenv("TOP_K", 7))
     
     @classmethod
     def validate(cls) -> bool:
