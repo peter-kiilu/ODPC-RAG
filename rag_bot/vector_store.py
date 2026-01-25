@@ -135,7 +135,7 @@ class VectorStore:
     def search(
         self,
         query: str,
-        top_k: int = 5
+        top_k: int = 7
     ) -> List[Dict[str, Any]]:
         """Search for similar documents.
         
@@ -164,10 +164,6 @@ class VectorStore:
             for i, doc in enumerate(results["documents"][0]):
                 source = results["metadatas"][0][i].get("source", "")
                 score = self._distance_to_score(results["distances"][0][i])
-                
-                # BOOST PDF sources
-                if source.endswith('.pdf'):
-                    score *= 0.9
                     
                 formatted.append({
                     "content": doc,
