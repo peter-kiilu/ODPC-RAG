@@ -28,7 +28,8 @@ class Retriever:
         a precise English Legal Search Query.
         """
         system_instruction = (
-            "You rewrite user questions into concise English search queries. "
+            "You translate user questions into concise English search queries. ENGLISH ONLY."
+            "If the question is already in english return that question without changes, no explanation."
             "Preserve the original meaning exactly. "
             "Do NOT add new legal concepts. "
             "Do NOT guess intent. "
