@@ -1,3 +1,7 @@
+"""
+Fixed api.py - Create bot and vector store ONCE at startup, not per request
+"""
+
 import logging
 import json
 import uuid
@@ -34,43 +38,56 @@ app = FastAPI(
 )
 
 
-# 2. Add the middleware to the app
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://3000-w-rickmwasofficial-mkpfbulw.cluster-s5xdz26smvgniwoeurkaozovss.cloudworkstations.dev",
-        "http://localhost:3000",  # For local development
-        "*"  # Allow all origins - configure more strictly for production
+        "http://localhost:3000",
+        "*"
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["*"],
-    max_age=3600,  # Cache preflight requests for 1 hour
+    max_age=3600,
 )
 
-# initialize database on startup
+# ============================================================================
+# FIX: CREATE GLOBAL INSTANCES AT STARTUP (NOT PER REQUEST)
+# ============================================================================
+
+# Global bot instance (created once at startup)
+chatbot: Optional[ChatBot] = None
+
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database and test connection on startup"""
+    """Initialize database and chatbot on startup"""
+    global chatbot
+    
     logger.info("Starting ODPC Kenya API....")
 
     try:
-        # initialize the db
+        # Initialize the database
         init_db()
 
         # Test database connection
         if test_connection():
-            logger.info("Database connection successful")
+            logger.info("✓ Database connection successful")
         else:
-            logger.error("Database connection failed!")
+            logger.error("✗ Database connection failed!")
+        
+        # FIX: Initialize chatbot ONCE at startup
+        logger.info("Initializing chatbot (one-time initialization)...")
+        chatbot = ChatBot()
+        logger.info("✓ Chatbot initialized and ready")
             
     except Exception as e:
         logger.error(f"Startup error: {e}")
+        raise
 
 
-
-# Data Models
+# Data Models (unchanged)
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, description="The user's message")
     session_id: Optional[str] = Field(None, description="Session ID for conversation tracking")
@@ -124,14 +141,20 @@ class SessionInfo(BaseModel):
 def health_check(db: Session = Depends(get_db)):
     """Check if the API and Vector Store are ready"""
     try:
-        vs = VectorStore()
+        # FIX: Use global chatbot instance instead of creating new one
+        if chatbot is None:
+            return {
+                "status": "initializing",
+                "error": "Chatbot is still initializing",
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
         
         # Test database connection
         db.execute(text("SELECT 1"))
 
         return {
             "status": "healthy",
-            "indexed_chunks": vs.count,
+            "indexed_chunks": chatbot.vector_store.count,
             "config_valid": config.validate(),
             "database_connected": True,
             "timestamp": datetime.now(timezone.utc).isoformat()
@@ -148,6 +171,13 @@ def health_check(db: Session = Depends(get_db)):
 async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
     """Receive a message and return the response"""
     try:
+        # FIX: Check if chatbot is initialized
+        if chatbot is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Chatbot is still initializing. Please try again in a moment."
+            )
+        
         if not request.message.strip():
             raise HTTPException(status_code=400, detail="Message cannot be empty")
 
@@ -156,23 +186,22 @@ async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
             request.session_id = str(uuid.uuid4())
             logger.info(f"Generated new session ID: {request.session_id}")
 
-        # Initialize the Bot globally so it doesn't reload on every message
-        # This keeps the vector store and memory in place
-        bot = ChatBot()
-
+        # FIX: Use global chatbot instance (no new instance created)
+        # Note: Each session still gets its own history loaded
+        
         # STEP 1: Load database history into bot's memory for this session
         past_messages = get_session_history(db, request.session_id, limit=10)
         if past_messages:
             # Load the database history into the bot
-            bot.load_history_from_db(past_messages)
+            chatbot.load_history_from_db(past_messages)
             logger.info(f"Loaded {len(past_messages)} past messages for session {request.session_id}")
         else:
             # CRITICAL: Clear history for new sessions to prevent leakage
-            bot.clear_history()
+            chatbot.clear_history()
             logger.info(f"New session started: {request.session_id}")
         
         # STEP 2: Get bot response (will use loaded history as context)
-        result = bot.chat(request.message)
+        result = chatbot.chat(request.message)
 
         # STEP 3: Save user message to database (AFTER getting response)
         user_message_id = add_message_to_history(
@@ -213,14 +242,22 @@ async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
 async def clear_chat(db: Session = Depends(get_db)):
     """Clear conversation history for the bot (in-memory only)"""
     try:
-        bot.clear_history()
+        if chatbot is None:
+            raise HTTPException(status_code=503, detail="Chatbot not initialized")
+        
+        chatbot.clear_history()
         return {
             "status": "success",
             "message": "In-memory conversation history cleared (database history preserved)"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error clearing chat: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# ... rest of your endpoints remain unchanged ...
+# (get_chat_history, get_all_sessions_endpoint, delete_chat_history_endpoint, welcome)
 
 @app.get("/chat/history/{session_id}", response_model=ChatHistoryResponse)
 async def get_chat_history(session_id: str, db: Session = Depends(get_db)):
@@ -301,7 +338,7 @@ async def get_all_sessions_endpoint(db: Session = Depends(get_db)):
         # Convert to response format
         session_infos = []
         for session in sessions:
-            if session.get("total_messages", 0) > 0:  # Only include sessions with messages
+            if session.get("total_messages", 0) > 0:
                 session_infos.append(SessionInfo(
                     session_id=session["session_id"],
                     total_messages=session.get("total_messages", 0),
