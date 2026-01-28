@@ -312,6 +312,7 @@ date_crawled: "{time.strftime('%Y-%m-%d %H:%M:%S')}"
             filepath = os.path.join(Config.DOCS_DIR, filename)
 
             if os.path.exists(filepath):
+                self.save_pdf_metadata(url, filename)
                 return
             
             # Stream the download
@@ -324,8 +325,38 @@ date_crawled: "{time.strftime('%Y-%m-%d %H:%M:%S')}"
                         f.write(chunk)
             
             logging.info(f"Saved Document: {filename}")
+
+            self.save_pdf_metadata(url, filename)
+            
         except Exception as e:
             logging.error(f"Failed to download document {url}: {e}")
+
+    def save_pdf_metadata(self, url, filename):
+        """
+            Save PDF metadata to preserve the source url
+        """
+        try:
+            metadata_dir = os.path.join(Config.BASE_DIR, "document_metadata")
+            os.makedirs(metadata_dir, exist_ok=True)
+
+            # Create metadata file with the same name as PDF but with .json extension
+            metadata_filename = filename.replace(".pdf", ".json")
+            metadata_path = os.path.join(metadata_dir, metadata_filename)
+
+            metadata = {
+                "source_url": url,
+                'filename': filename,
+                'downloaded_date': time.strftime('%Y-%m-%d %H:%M:%S'),
+                'title': filename.replace('.pdf', '').replace('_', ' ').replace('-', ' ')
+            }
+
+            with open(metadata_path, 'w', encoding='utf-8') as f:
+                json.dump(metadata, f, indent=2)
+
+            logging.debug(f'Saved PDF Metadata: {metadata_filename}')
+
+        except Exception as e:
+            logging.error(f"Failed to save PDF metadata for {filename}: {e}")
 
 
 def setup_logging():

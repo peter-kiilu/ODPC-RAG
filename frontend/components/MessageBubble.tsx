@@ -1,5 +1,6 @@
-
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Message } from '../types';
 import { BotAvatar } from './BotAvatar';
 
@@ -18,28 +19,55 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             <BotAvatar />
           </div>
         )}
+
         <div className="flex flex-col">
           <div
             className={`px-4 py-3 shadow-md ${isBot
-                ? 'bg-white text-slate-800 border border-slate-200 bot-bubble rounded-2xl'
-                : 'bg-green-700 text-white user-bubble rounded-2xl'
+              ? 'bg-white text-slate-800 border border-slate-200 bot-bubble rounded-2xl'
+              : 'bg-green-700 text-white user-bubble rounded-2xl'
               } ${message.isError ? 'border-red-500 bg-red-50 text-red-900' : ''}`}
           >
             {message.isError && <i className="fa-solid fa-circle-exclamation mr-2"></i>}
-            <p className="whitespace-pre-wrap leading-relaxed text-sm md:text-base">
+
+            {/* ✅ ReactMarkdown with proper v8+ API */}
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                p: ({ children }) => <p className="whitespace-pre-wrap leading-relaxed text-sm md:text-base">{children}</p>,
+                a: ({ href, children }) => (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline hover:text-blue-800"
+                  >
+                    {children}
+                  </a>
+                ),
+                li: ({ children }) => <li className="ml-4 list-disc">{children}</li>,
+              }}
+            >
               {message.text}
-            </p>
+            </ReactMarkdown>
 
             {isBot && message.sources && message.sources.length > 0 && (
               <div className="mt-3 pt-3 border-t border-slate-100">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Legal Footprints:</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                  Legal Footprints:
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {message.sources.map((source, idx) => (
                     <span
                       key={idx}
                       className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] border border-slate-200 hover:bg-slate-200 transition-colors cursor-default"
                     >
-                      {source}
+                      {source.startsWith('http') ? (
+                        <a href={source} target="_blank" rel="noopener noreferrer">
+                          {source}
+                        </a>
+                      ) : (
+                        source
+                      )}
                     </span>
                   ))}
                 </div>

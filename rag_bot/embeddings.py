@@ -23,48 +23,38 @@ class EmbeddingGenerator:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.batch_size = batch_size
         
-        # Initialize the HuggingFace embedding model
-        self.embed_model = HuggingFaceEmbedding(
-            model_name=self.model_name,
-            device=self.device,
-            embed_batch_size=self.batch_size,
-            normalize=True,
-        )
-        logger.info(f"Initialized HuggingFace embedding model: {self.model_name}")
+        logger.info(f"Initializing HuggingFace embedding model: {self.model_name} on {self.device}")
         
-    # def embed_texts(self, texts: List[str]) -> List[List[float]]:
-    #     """Generate embeddings for a list of texts.
-        
-    #     Args:
-    #         texts: List of text strings to embed.
+        # FIX: Initialize with explicit parameters to avoid meta tensor issue
+        try:
+            self.embed_model = HuggingFaceEmbedding(
+                model_name=self.model_name,
+                device=self.device,
+                embed_batch_size=self.batch_size,
+                normalize=True,
+                trust_remote_code=True,  # ADD THIS
+            )
             
-    #     Returns:
-    #         List of embedding vectors.
-    #     """
-    #     if not texts:
-    #         return []
+            # FIX: Force model to fully load by doing a dummy embedding
+            # This ensures the model is properly initialized and not in "meta" state
+            logger.info("Performing initialization test...")
+            test_embedding = self.embed_model.get_text_embedding("initialization test")
+            logger.info(f"✓ Model initialized successfully (embedding dim: {len(test_embedding)})")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize embedding model: {e}")
+            logger.info("Attempting fallback initialization...")
+            
+            # Fallback: Try with minimal settings
+            self.embed_model = HuggingFaceEmbedding(
+                model_name=self.model_name,
+                device="cpu",  # Force CPU on fallback
+            )
+            
+            # Test again
+            test_embedding = self.embed_model.get_text_embedding("initialization test")
+            logger.info(f"✓ Fallback initialization successful (embedding dim: {len(test_embedding)})")
         
-    #     all_embeddings = []
-        
-    #     try:
-    #         for i in range(0, len(texts), self.batch_size):
-    #             batch = texts[i:i + self.batch_size]
-                
-    #             # Get embeddings for each text in the batch
-    #             batch_embeddings = [
-    #                 self.embed_model.get_text_embedding(text) for text in batch
-    #             ]
-    #             all_embeddings.extend(batch_embeddings)
-                
-    #             logger.debug(f"Generated embeddings for batch {i // self.batch_size + 1}")
-                
-    #     except Exception as e:
-    #         logger.error(f"Error generating embeddings: {e}")
-    #         raise
-        
-    #     logger.info(f"Generated {len(all_embeddings)} embeddings")
-    #     return all_embeddings   
-    
     def embed_texts(self, texts: List[str]) -> List[List[float]]:
         """Generate embeddings for a list of texts using optimized batching."""
         if not texts:
@@ -77,6 +67,7 @@ class EmbeddingGenerator:
                 texts, 
                 show_progress=True  # This will give you a nice progress bar!
             )
+            logger.info(f"Generated {len(all_embeddings)} embeddings")
             return all_embeddings
             
         except Exception as e:

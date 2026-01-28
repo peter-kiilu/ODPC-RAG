@@ -2,6 +2,7 @@
 
 import logging
 import os
+import json
 import gc
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -43,6 +44,26 @@ class DocumentLoader:
         # Reference pattern: Define supported extensions clearly
         self.SUPPORTED_EXTENSIONS = {'.md', '.pdf'}
 
+    def _load_pdf_metadata(self, pdf_filename: str) -> Optional[Dict[str, Any]]:
+        """
+            Load metadata for a pdf file
+        """
+        try:
+            # construct path to metadata file
+            metadata_dir = self.data_dir.parent / 'document_metadata'
+            metadata_filename = pdf_filename.replace(".pdf", ".json")
+            metadata_path = metadata_dir / metadata_filename
+
+            if metadata_path.exists():
+                with open(metadata_path, 'r', encoding="utf-8") as f:
+                    return json.load(f)
+            else:
+                logger.warning(f"No metadata found for PDF: {pdf_filename}")
+                return None
+        except Exception as e:
+            logger.error(f"Failed to load PDF metadata for {pdf_filename}: {e}")
+            return None
+
     @lru_cache(maxsize=100)
     def _read_file_content(self, file_path: Path) -> Optional[str]:
         """LRU Cached file reader to prevent redundant disk I/O."""
@@ -68,8 +89,15 @@ class DocumentLoader:
             title = self._extract_title(content, file_path.stem)
             source = self._extract_source_url(content, file_path.name)
         else:
-            title = file_path.stem.replace("-", " ").replace("_", " ")
-            source = file_path.name
+            pdf_metadata = self._load_pdf_metadata(file_path.name)
+            if pdf_metadata:
+                title = pdf_metadata.get('title', file_path.stem.replace("-", " ").replace("_", " "))
+                source = pdf_metadata.get('source_url', file_path.name)
+                logger.debug(f"Loaded PDF URL from metadata: {source}")
+            else:
+                title = file_path.stem.replace("-", " ").replace("_", " ")
+                source = file_path.name
+                logger.warning(f"Using filename as source for {file_path.name} - metadata not found")
 
         return Document(
             content=content,
