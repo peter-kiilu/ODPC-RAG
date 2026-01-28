@@ -58,7 +58,7 @@ app.add_middleware(
 # ============================================================================
 
 # Global bot instance (created once at startup)
-chatbot: Optional[ChatBot] = None
+chatbot: Optional[ChatBot] = ChatBot()
 
 @app.on_event("startup")
 async def startup_event():
