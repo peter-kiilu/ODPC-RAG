@@ -1,0 +1,102 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+.hypothesis/
+*.pyc
+*.pyo
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+.DS_Store
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+data/logs/
+
+# Temp files
+tmp/
+temp/
+*.tmp
+
+# Documentation (except README)
+*.md
+!README.md
+docs/
+
+# Database files (use volumes!)
+rag_bot/chroma_db/
+chroma_db/
+*.db
+*.sqlite
+*.sqlite3
+
+# Data directories (use volumes!)
+data/
+!data/.gitkeep
+
+# Node modules
+node_modules/
+npm-debug.log*
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Tests
+tests/
+test_*.py
+*_test.py
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# OS
+Thumbs.db
+.DS_Store
+
+# State files
+crawler_state.json
+.db_initialized
+
+# Cache
+.cache/
+*.cache
